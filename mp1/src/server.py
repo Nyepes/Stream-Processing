@@ -3,13 +3,16 @@ import socket
 import threading
 import subprocess
 from shared.shared import send_data, receive_data
+import sys
+
+machine_id = 1
 
 def run_query(query: str):
     """
     Runs the arguments for the query passed in.
     Returns the string containing the result.
     """
-    command = f"grep {query} machine.i.log"
+    command = f"grep {query} machine.{machine_id}.log | sed 's/^/machine.{machine_id}.log: /'"
     # Runs the command given and captures output so that the result can be retrieved.
     result = subprocess.run(command, capture_output=True, text = True, shell=True)
     output_value = result.stdout.strip()
@@ -33,8 +36,7 @@ def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Lets server reuse address so that it can relaunch quickly
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    # TODO: Change when we get all hosts
-    server.bind((HOSTS[0], PORT))
+    server.bind(("127.0.0.1", PORT))
     server.listen(MAX_CLIENTS)
     
     while True:
@@ -46,4 +48,5 @@ def start_server():
         client_handler.start()
 
 if __name__ == "__main__":
+    machine_id = int(sys.argv[1])
     start_server()
