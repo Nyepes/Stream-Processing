@@ -2,6 +2,7 @@ from shared.constants import HOSTS, PORT
 import socket
 import sys
 from shared.shared import send_data, receive_data
+import threading
 
 def query_host(host: str, arguments: str):
     """
@@ -15,14 +16,26 @@ def query_host(host: str, arguments: str):
         result = receive_data(server)
     return result
 
+def print_server_data(host, arguments):
+    """
+    Query the result from the server and print it
+    """
+    data = query_host(host, arguments)
+    print(data)
+
 def query_all_hosts(arguments: str):
     """
-    For each host query the command and print the result
+    For each host open up a new thread that will query the srever and print the data
+    Threads are created to increase parallization.
     """
-    for host in HOSTS:
-        print(host)
-        data = query_host(host, arguments)
-        print(data)
+    threads = [0] * len(HOSTS)
+    for i, host in enumerate(HOSTS):
+        threads[i] = threading.Thread(target=print_server_data, args=(host, arguments))
+        threads[i].start()
+        
+    for thread in threads:
+        thread.join()
+
 
 
 if __name__ == "__main__":
