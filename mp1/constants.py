@@ -1,9 +1,0 @@
-HOSTS = [
-    "127.0.0.1"
-]
-
-PORT = 12345
-
-MAX_CLIENTS = 10
-
-DATA_LENGTH_BYTES = 10
