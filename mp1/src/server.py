@@ -36,7 +36,7 @@ def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Lets server reuse address so that it can relaunch quickly
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind(("127.0.0.1", PORT))
+    server.bind((HOSTS[machine_id - 1], PORT))
     server.listen(MAX_CLIENTS)
     
     while True:

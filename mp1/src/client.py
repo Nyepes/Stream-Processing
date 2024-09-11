@@ -20,6 +20,7 @@ def query_all_hosts(arguments: str):
     For each host query the command and print the result
     """
     for host in HOSTS:
+        print(host)
         data = query_host(host, arguments)
         print(data)
 
