@@ -4,7 +4,7 @@ import sys
 from shared.shared import send_data, receive_data
 import threading
 import queue
-from time import sleep
+from time import sleep, time
 
 LINE_COUNT = False
 total_line_count = 0
@@ -16,6 +16,7 @@ def increase_total_line_count(amount: int):
     duck.acquire()
     total_line_count += amount
     duck.release()
+
 def query_host(host: str, arguments: str):
     """
     Opens up a connection with server to send the command passed in to arguments
@@ -26,8 +27,14 @@ def query_host(host: str, arguments: str):
             server.settimeout(RECEIVE_TIMEOUT)
             result = ""
             server.connect((host, PORT))
+
+            start_time = time()
             send_data(server, arguments)
             result = receive_data(server)
+            end_time = time()
+
+            print(f"{host}: {end_time - start_time} seconds")
+
         return result
     except (ConnectionRefusedError, socket.timeout):
         return -1
@@ -79,6 +86,12 @@ if __name__ == "__main__":
             LINE_COUNT = True
         if (" " in string or ';' in string or '|' in string or '&' in string or ">" in string or "<" in string):
             arguments += f'"{string}"'
+        elif ("\"" in string):
+            args = string.split("\"")
+            new_arg = ""
+            for arg in args:
+                new_arg += arg + "\\\""
+            arguments += f'"{new_arg[:-2]}"'
         else:
             arguments += string
         arguments += ' '
