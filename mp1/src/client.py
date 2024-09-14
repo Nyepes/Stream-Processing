@@ -84,9 +84,10 @@ if __name__ == "__main__":
         # (e.g. grep Hello World != grep "Hello World")
         if (string == '-c'):
             LINE_COUNT = True
-        if (" " in string or ';' in string or '|' in string or '&' in string or ">" in string or "<" in string):
+        if (" " in string or ';' in string or '|' in string or '&' in string or ">" in string or "<" in string or "\\" or "$" in string):
             arguments += f'"{string}"'
         elif ("\"" in string):
+            # Handle " inside the requested string
             args = string.split("\"")
             new_arg = ""
             for arg in args:

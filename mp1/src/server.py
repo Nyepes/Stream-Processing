@@ -12,7 +12,6 @@ def run_query(query: str):
     Runs the arguments for the query passed in.
     Returns the string containing the result.
     """
-    print(query)
     command = f"grep {query} {f'machine.{machine_id}.log' if not TEST else 'test.log'} | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
     # Runs the command given and captures output so that the result can be retrieved.
     result = subprocess.run(command, capture_output=True, text = True, shell=True)
