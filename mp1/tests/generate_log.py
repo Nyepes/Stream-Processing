@@ -1,50 +1,63 @@
 import random
 from datetime import datetime, timedelta
+import re
 
 def generate_log_file(filename, total_entries=1000):
     lines = []
     frequent_ip = '192.168.1.100'    # Frequent IP address
-    infrequent_ip = '10.0.0.50'      # Infrequent IP address
-    regex_pattern = '/product/\\d+'  # URLs matching this pattern
+    medium_ip = '192.168.1.150'      # Medium frequency IP address
+    rare_ip = '10.0.0.50'      # Infrequent IP address
+    regex_pattern = r'/product/\d+'  # Regex pattern to match
     other_ips = [f'172.16.0.{i}' for i in range(1, 255)]
     http_methods = ['GET', 'POST', 'PUT', 'DELETE']
     urls = ['/home', '/about', '/contact', '/login', '/logout']
     product_ids = [str(i) for i in range(1, 101)]  # For regex matching
 
-    # Calculate the number of times each string should appear
-    num_frequent_ip = int(total_entries * 0.6)   # At least 60%
-    num_infrequent_ip = int(total_entries * 0.1) # At most 10%
-    num_regex_entries = int(total_entries * 0.25) # Let's say regex matches 25% of the entries
-    num_other_entries = total_entries - num_frequent_ip - num_infrequent_ip - num_regex_entries
+    # Calculate the number of times each IP should appear
+    num_frequent_ip = int(total_entries * 0.6)   # 60% of total entries
+    num_medium_ip = int(total_entries * 0.3)     # 30% of total entries
+    num_rare_ip = int(total_entries * 0.1) # 10% of total entries
+    total_ips_entries = num_frequent_ip + num_medium_ip + num_rare_ip
+
+    # Ensure total entries sum up correctly
+    if total_ips_entries != total_entries:
+        num_rare_ip = total_entries - (num_frequent_ip + num_medium_ip)
+
+    # Calculate the number of regex matches (35% of total entries)
+    num_regex_entries = int(total_entries * 0.35)  # 35% regex matches
+
+    # Distribute regex matches among IP addresses proportionally
+    num_frequent_regex = int(num_frequent_ip * 0.35)
+    num_medium_regex = int(num_medium_ip * 0.35)
+    num_infrequent_regex = num_regex_entries - (num_frequent_regex + num_medium_regex)
+
+    # Ensure the counts are correct
+    num_frequent_non_regex = num_frequent_ip - num_frequent_regex
+    num_medium_non_regex = num_medium_ip - num_medium_regex
+    num_infrequent_non_regex = num_rare_ip - num_infrequent_regex
 
     # Generate timestamps
     base_time = datetime.now()
     time_deltas = [timedelta(seconds=i) for i in range(total_entries)]
     timestamps = [base_time + delta for delta in time_deltas]
 
-    # Add entries with the frequent IP address
-    for _ in range(num_frequent_ip):
-        line = generate_log_entry(frequent_ip, random.choice(http_methods), random.choice(urls), random.choice(timestamps))
-        lines.append(line)
+    # Add entries for frequent IP
+    lines.extend(generate_entries(
+        frequent_ip, num_frequent_regex, num_frequent_non_regex,
+        http_methods, timestamps, product_ids, urls
+    ))
 
-    # Add entries with the infrequent IP address
-    for _ in range(num_infrequent_ip):
-        line = generate_log_entry(infrequent_ip, random.choice(http_methods), random.choice(urls), random.choice(timestamps))
-        lines.append(line)
+    # Add entries for medium frequency IP
+    lines.extend(generate_entries(
+        medium_ip, num_medium_regex, num_medium_non_regex,
+        http_methods, timestamps, product_ids, urls
+    ))
 
-    # Add entries that match the regex pattern
-    for _ in range(num_regex_entries):
-        url = f"/product/{random.choice(product_ids)}"  # URL matching the regex pattern
-        ip = random.choice(other_ips)
-        line = generate_log_entry(ip, random.choice(http_methods), url, random.choice(timestamps))
-        lines.append(line)
-
-    # Add other random entries
-    for _ in range(num_other_entries):
-        ip = random.choice(other_ips)
-        url = random.choice(urls)
-        line = generate_log_entry(ip, random.choice(http_methods), url, random.choice(timestamps))
-        lines.append(line)
+    # Add entries for infrequent IP
+    lines.extend(generate_entries(
+        rare_ip, num_infrequent_regex, num_infrequent_non_regex,
+        http_methods, timestamps, product_ids, urls
+    ))
 
     # Shuffle the lines to randomize their order
     random.shuffle(lines)
@@ -54,7 +67,17 @@ def generate_log_file(filename, total_entries=1000):
         for line in lines:
             f.write(f"{line}\n")
 
-    return num_frequent_ip, num_infrequent_ip, num_regex_entries
+def generate_entries(ip, num_regex, num_non_regex, http_methods, timestamps, product_ids, urls):
+    entries = []
+    for _ in range(num_regex):
+        url = f"/product/{random.choice(product_ids)}"  # URL matching the regex pattern
+        line = generate_log_entry(ip, random.choice(http_methods), url, random.choice(timestamps))
+        entries.append(line)
+    for _ in range(num_non_regex):
+        url = random.choice(urls)
+        line = generate_log_entry(ip, random.choice(http_methods), url, random.choice(timestamps))
+        entries.append(line)
+    return entries
 
 def generate_log_entry(ip, method, url, timestamp):
     log_format = '{ip} - - [{timestamp}] "{method} {url} HTTP/1.1" {status_code} {response_size}'
@@ -70,31 +93,12 @@ def generate_log_entry(ip, method, url, timestamp):
         response_size=response_size
     )
 
-def calculate_expected_matches(num_frequent_ip, num_infrequent_ip, num_regex_entries):
-    expected_matches = {
-        'frequent_ip': num_frequent_ip,
-        'infrequent_ip': num_infrequent_ip,
-        'regex_matches': num_regex_entries
-    }
-    return expected_matches
-
-def write_answers(filename, expected_matches):
-    with open(filename, 'w') as f:
-        f.write(f"{expected_matches['frequent_ip']}\n")
-        f.write(f"{expected_matches['infrequent_ip']}\n")
-        f.write(f"{expected_matches['regex_matches']}\n")
-
 def main():
-    log_filename = 'web_access.log'
-    answers_filename = 'answers.txt'
+    
+    log_filename = '../src/test.log'
     total_entries = 1000
 
-    num_frequent_ip, num_infrequent_ip, num_regex_entries = generate_log_file(log_filename, total_entries)
-    expected_matches = calculate_expected_matches(num_frequent_ip, num_infrequent_ip, num_regex_entries)
-    write_answers(answers_filename, expected_matches)
-
-    print(f"Log file '{log_filename}' generated successfully.")
-    print(f"Expected matches written to '{answers_filename}'.")
+    generate_log_file(log_filename, total_entries)
 
 if __name__ == "__main__":
     main()
