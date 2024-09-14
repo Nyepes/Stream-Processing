@@ -1,4 +1,4 @@
-from shared.constants import HOSTS, PORT, MAX_CLIENTS
+from shared.constants import HOSTS, PORT, MAX_CLIENTS, MACHINE_SEPARATOR
 import socket
 import threading
 import subprocess
