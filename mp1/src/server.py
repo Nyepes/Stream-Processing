@@ -12,7 +12,7 @@ def run_query(query: str):
     Runs the arguments for the query passed in.
     Returns the string containing the result.
     """
-    command = f"grep {query} machine.{machine_id}.log | sed 's/^/machine.{machine_id}.log: /'"
+    command = f"grep {query} machine.{machine_id}.log | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
     # Runs the command given and captures output so that the result can be retrieved.
     result = subprocess.run(command, capture_output=True, text = True, shell=True)
     output_value = result.stdout.strip()
