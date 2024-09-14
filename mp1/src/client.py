@@ -4,33 +4,49 @@ import sys
 from shared.shared import send_data, receive_data
 import threading
 import queue
+from time import sleep, time
 
 LINE_COUNT = False
 total_line_count = 0
 duck = threading.Lock()
+RECEIVE_TIMEOUT = 5
 
 def increase_total_line_count(amount: int):
     global total_line_count
     duck.acquire()
     total_line_count += amount
     duck.release()
+
 def query_host(host: str, arguments: str):
     """
     Opens up a connection with server to send the command passed in to arguments
     and returns the result.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        result = ""
-        server.connect((host, PORT))
-        send_data(server, arguments)
-        result = receive_data(server)
-    return result
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.settimeout(RECEIVE_TIMEOUT)
+            result = ""
+            server.connect((host, PORT))
+
+            start_time = time()
+            send_data(server, arguments)
+            result = receive_data(server)
+            end_time = time()
+
+            print(f"{host}: {end_time - start_time} seconds")
+
+        return result
+    except (ConnectionRefusedError, socket.timeout):
+        return -1
 
 def print_server_data(host, arguments):
     """
     Query the result from the server and print it
     """
     data = query_host(host, arguments)
+    if (data == -1):
+        print(f"{host}: FAILED")
+        return
     print(data)
     if (LINE_COUNT):
         line_counts = data.split(MACHINE_SEPARATOR)
@@ -68,8 +84,15 @@ if __name__ == "__main__":
         # (e.g. grep Hello World != grep "Hello World")
         if (string == '-c'):
             LINE_COUNT = True
-        if (" " in string or ';' in string or '|' in string or '&' in string or ">" in string or "<" in string):
+        if (" " in string or ';' in string or '|' in string or '&' in string or ">" in string or "<" in string or "\\" or "$" in string):
             arguments += f'"{string}"'
+        elif ("\"" in string):
+            # Handle " inside the requested string
+            args = string.split("\"")
+            new_arg = ""
+            for arg in args:
+                new_arg += arg + "\\\""
+            arguments += f'"{new_arg[:-2]}"'
         else:
             arguments += string
         arguments += ' '

@@ -1,4 +1,4 @@
-from shared.constants import HOSTS, PORT, MAX_CLIENTS
+from shared.constants import HOSTS, PORT, MAX_CLIENTS, MACHINE_SEPARATOR
 import socket
 import threading
 import subprocess
@@ -6,13 +6,13 @@ from shared.shared import send_data, receive_data
 import sys
 
 machine_id = 1
-
+TEST = False
 def run_query(query: str):
     """
     Runs the arguments for the query passed in.
     Returns the string containing the result.
     """
-    command = f"grep {query} machine.{machine_id}.log | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
+    command = f"grep {query} {f'machine.{machine_id}.log' if not TEST else 'test.log'} | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
     # Runs the command given and captures output so that the result can be retrieved.
     result = subprocess.run(command, capture_output=True, text = True, shell=True)
     output_value = result.stdout.strip()
@@ -49,4 +49,6 @@ def start_server():
 
 if __name__ == "__main__":
     machine_id = int(sys.argv[1])
+    if (len(sys.argv) == 3 and sys.argv[2] == '-t'):
+        TEST = True
     start_server()

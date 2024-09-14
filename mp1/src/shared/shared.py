@@ -1,6 +1,6 @@
 from socket import socket
 from shared.constants import DATA_LENGTH_BYTES
-
+from time import sleep
 
 def send_data(socket: socket, data: str):
     """
@@ -33,6 +33,8 @@ def receive_data(socket: socket):
     message = ""
 
     for _ in range(0, size, BYTE_STREAM):
-        message += socket.recv(BYTE_STREAM).decode("utf-8")
-    
+        received = socket.recv(BYTE_STREAM)
+        if (received == ''):
+            raise ConnectionRefusedError
+        message += received.decode("utf-8")
     return message
