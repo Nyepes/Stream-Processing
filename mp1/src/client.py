@@ -4,10 +4,12 @@ import sys
 from shared.shared import send_data, receive_data
 import threading
 import queue
+from time import sleep
 
 LINE_COUNT = False
 total_line_count = 0
 duck = threading.Lock()
+RECEIVE_TIMEOUT = 5
 
 def increase_total_line_count(amount: int):
     global total_line_count
@@ -19,18 +21,25 @@ def query_host(host: str, arguments: str):
     Opens up a connection with server to send the command passed in to arguments
     and returns the result.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        result = ""
-        server.connect((host, PORT))
-        send_data(server, arguments)
-        result = receive_data(server)
-    return result
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.settimeout(RECEIVE_TIMEOUT)
+            result = ""
+            server.connect((host, PORT))
+            send_data(server, arguments)
+            result = receive_data(server)
+        return result
+    except (ConnectionRefusedError, socket.timeout):
+        return -1
 
 def print_server_data(host, arguments):
     """
     Query the result from the server and print it
     """
     data = query_host(host, arguments)
+    if (data == -1):
+        print(f"{host}: FAILED")
+        return
     print(data)
     if (LINE_COUNT):
         line_counts = data.split(MACHINE_SEPARATOR)
