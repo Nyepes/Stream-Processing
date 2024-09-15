@@ -4,7 +4,7 @@ import sys
 from shared.shared import send_data, receive_data
 import threading
 import queue
-from time import sleep, time
+from time import sleep
 
 LINE_COUNT = False
 total_line_count = 0
@@ -28,13 +28,9 @@ def query_host(host: str, arguments: str):
             result = ""
             server.connect((host, PORT))
 
-            start_time = time()
             send_data(server, arguments)
             result = receive_data(server)
-            end_time = time()
-
-            print(f"{host}: {end_time - start_time} seconds")
-
+            
         return result
     except (ConnectionRefusedError, socket.timeout):
         return -1

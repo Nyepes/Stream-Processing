@@ -10,8 +10,9 @@ and have server running
 def comapre(expected):
     
     with open("result.txt", "r") as file:
-        lines = file.read().split("\n")
-        for line for lines:
+        lines = file.read().split("\n")[:-1]
+        for line in lines:
+            print(line)
             assert(line in expected)
                 
 
@@ -31,7 +32,9 @@ def test_simple_grep():
         "machine.7.log: 600", 
         "machine.8.log: 600",
         "machine.9.log: 600", 
-        "machine.10.log: 600"
+        "machine.10.log: 600",
+        "TOTAL: 6000"
+
     }
     expected_medium = {
         "machine.1.log: 300", 
@@ -43,7 +46,9 @@ def test_simple_grep():
         "machine.7.log: 300", 
         "machine.8.log: 300",
         "machine.9.log: 300", 
-        "machine.10.log: 300"
+        "machine.10.log: 300",
+        "TOTAL: 3000"
+
     }
     expected_rare = {
         "machine.1.log: 100", 
@@ -55,20 +60,21 @@ def test_simple_grep():
         "machine.7.log: 100", 
         "machine.8.log: 100",
         "machine.9.log: 100", 
-        "machine.10.log: 100"
+        "machine.10.log: 100",
+        "TOTAL: 1000"
     }
     #Frequent
-    os.sys('python client.py -c "192.168.1.100" >> result.txt')
+    os.system('python ../src/client.py -c "192.168.1.100" > result.txt')
     comapre(expected_frequent)
 
     #Medium
-    os.sys('python client.py -c "192.168.1.150" >> result.txt')
+    os.system('python ../src/client.py -c "192.168.1.150" > result.txt')
     comapre(expected_medium)
 
     # Rare
-    os.sys('python client.py -c "10.0.0.50" >> result.txt')
+    os.system('python ../src/client.py -c "10.0.0.50" > result.txt')
     comapre(expected_rare)
-    os.remove("result.txt ")
+    os.remove("result.txt")
     
 
 
@@ -87,8 +93,14 @@ def test_complex_grep():
         "machine.7.log: 350", 
         "machine.8.log: 350",
         "machine.9.log: 350", 
-        "machine.10.log: 350"
+        "machine.10.log: 350",
+        "TOTAL: 3500"
+
     }
-    os.sys('python client.py -c -E "/product/\d+" >> result.txt')
+    os.system('python ../src/client.py -c -P "/product/\d+" > result.txt')
     comapre(expected_regex)
-    os.remove("result.txt ")
+    os.remove("result.txt")
+
+
+test_simple_grep()
+test_complex_grep()
