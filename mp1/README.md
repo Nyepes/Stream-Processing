@@ -96,6 +96,6 @@ python3 server.py <machineide> -t
 3. Run tests/test_accuracy.py (on any single machine)
 
 ```bash
-python3 tests/test_accuracy.py
+python3 tests/test.py
 ```
 
