@@ -8,7 +8,7 @@ models to recieve and send data over the socket object.
 
 """
 
-def send_data(socket: socket, data: str) -> None:
+def send_data(socket: socket, data: str):
 
     """
     
@@ -39,7 +39,7 @@ def send_data(socket: socket, data: str) -> None:
     encoded_size = "0" * (DATA_LENGTH_BYTES - num_characters) + str(len(data))
     socket.sendall((encoded_size + data).encode("utf-8"))
 
-def receive_data(socket: socket) -> str:
+def receive_data(socket: socket):
 
     """
     
