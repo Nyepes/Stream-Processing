@@ -1,2 +1,6 @@
-*/**/machine.*.log
-*/**/__pycache__
+# Cache
+__pycache__
+
+# Log files
+machine.*.log
+test.log
