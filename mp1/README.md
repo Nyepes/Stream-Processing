@@ -20,26 +20,15 @@ git clone https://gitlab.engr.illinois.edu/nyepes2/g06.git
 
 3. Start server (on each machine)
 
-### Windows
 ```bash
-python server.py <machineid>
+python server.py <machineid> <flags>
 ```
-
-### MacOS
-```bash
-python3 server.py <machineid>
-```
+`-t` adding this flag will create a server in test mode so that it will query the log file `test.log` (see Testing Section)
 
 4. Start client (on any single machine)
 
-### Windows
 ```bash
 python client.py <flags> <command>
-```
-
-### MacOS
-```bash
-python3 client.py <flags> <command>
 ```
 
 The client essentially works as a wrapper for grep. Therefore, <flags> should be valid grep flags and <command> should be a valid grep argument to match.
@@ -104,11 +93,9 @@ Just as previous section, but use -t flag to run grep on test.log
 python3 server.py <machineide> -t
 ```
 
-2. Run client.py (on any single machine)
-
-Just as the previous section
+3. Run tests/test_accuracy.py (on any single machine)
 
 ```bash
-python3 client.py <flags> <command>
+python3 tests/test_accuracy.py
 ```
 
