@@ -1,5 +1,5 @@
-from shared.constants import HOSTS, PORT, MACHINE_SEPARATOR
-from shared.shared import send_data, receive_data
+from src.shared.constants import HOSTS, PORT, MACHINE_SEPARATOR
+from src.shared.shared import send_data, receive_data
 import threading
 import socket
 import sys
@@ -55,7 +55,6 @@ def query_host(host: str, arguments: str):
     try:
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((host, PORT))
 

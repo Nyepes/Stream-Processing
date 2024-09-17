@@ -1,4 +1,4 @@
-from shared.constants import DATA_LENGTH_BYTES
+from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
 
 """

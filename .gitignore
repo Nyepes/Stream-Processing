@@ -1,1 +1,8 @@
 __pycache__/
+# Cache
+__pycache__
+
+# Log files
+machine.*.log
+test.log
+__init__.py

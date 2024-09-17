@@ -1,5 +1,5 @@
-from shared.constants import HOSTS, PORT, MAX_CLIENTS, MACHINE_SEPARATOR
-from shared.shared import send_data, receive_data
+from src.shared.constants import HOSTS, PORT, MAX_CLIENTS, MACHINE_SEPARATOR
+from src.shared.shared import send_data, receive_data
 import subprocess
 import threading
 import socket
@@ -27,7 +27,7 @@ def run_query(machine_id: str, arguments: str):
     """
 
     # grep result prefixed with "machine.i.log: "
-    command = f"grep {arguments} {f'machine.{machine_id}.log' if not TEST else 'test.log'} | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
+    command = f"grep {arguments} {f'src/machine.{machine_id}.log' if not TEST else 'src/mp1/test.log'} | sed 's/^/machine.{machine_id}.log{MACHINE_SEPARATOR}/'"
     
     # Runs the command given and captures output so that the result can be retrieved.
     result = subprocess.run(command, capture_output=True, text = True, shell=True)
