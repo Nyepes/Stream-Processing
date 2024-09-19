@@ -17,18 +17,21 @@ Where machineid is a number 01 to 10 inclusive.
 ```bash
 git clone https://gitlab.engr.illinois.edu/nyepes2/g06.git
 ```
+3. Build and add needed dependencies (on each machine)
+./run.sh build
 
-3. Start server (on each machine)
+
+4. Start server (on each machine)
 
 ```bash
-python server.py <machineid> <flags>
+./run.sh dgrep_server <machineid> <flags>
 ```
 `-t` adding this flag will create a server in test mode so that it will query the log file `test.log` (see Testing Section)
 
-4. Start client (on any single machine)
+5. Start client (on any single machine)
 
 ```bash
-python client.py <flags> <command>
+./run.sh dgrep <flags> <command>
 ```
 
 The client essentially works as a wrapper for grep. Therefore, <flags> should be valid grep flags and <command> should be a valid grep argument to match.
@@ -37,7 +40,7 @@ Below are some examples:
 
 ### Matching lines for raw string GET
 ```bash
-python3 client.py "GET"
+./run.sh dgrep "GET"
 ```
 
 Prints the actual matching raw strings
@@ -58,7 +61,7 @@ machine.10.log: ... GET ...
 
 ### Matching lines count for raw string GET
 ```bash
-python3 client.py -c "GET"
+./run.sh dgrep -c "GET"
 ```
 
 The -c flag prints the matching line count in each machine and the matching line count in the whole system.
@@ -72,7 +75,7 @@ TOTAL: <aggregate>
 
 ### Matching lines count for regex /product/\<num\>
 ```bash
-python3 client.py -c -P "/product/\d+"
+./run.sh dgrep -c -P "/product/\d+"
 ```
 
 The -P is used to allow use of PCRE regular expressions such as \d for digits

@@ -11,10 +11,14 @@ HOSTS = [
     "fa24-cs425-0610.cs.illinois.edu"
 ]
 
-PORT = 12345
+LOGGER_PORT = 12345
 
 MAX_CLIENTS = 10
 
 DATA_LENGTH_BYTES = 10
 
 MACHINE_SEPARATOR = ": "
+
+MEMBER_LIST_FILE = "member_list.txt"
+
+RECEIVE_TIMEOUT = 5  # Timeout to determine a server has crashed (i.e. process has failed)

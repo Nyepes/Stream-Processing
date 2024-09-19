@@ -77,3 +77,11 @@ def receive_data(socket: socket):
         message += received.decode("utf-8")
     
     return message
+
+
+def udp_send_data(socket: socket, data):
+    return
+
+def udp_receive_data(socket: socket):
+    socket.recvfrom(1024)
+    return ""

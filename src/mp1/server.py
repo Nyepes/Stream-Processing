@@ -1,4 +1,4 @@
-from src.shared.constants import HOSTS, PORT, MAX_CLIENTS, MACHINE_SEPARATOR
+from src.shared.constants import HOSTS, LOGGER_PORT, MAX_CLIENTS, MACHINE_SEPARATOR
 from src.shared.shared import send_data, receive_data
 import subprocess
 import threading
@@ -76,7 +76,7 @@ def start_server(machine_id: str):
     
     # Lets server reuse address so that it can relaunch quickly
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind((HOSTS[machine_id - 1], PORT))
+    server.bind((HOSTS[machine_id - 1], LOGGER_PORT))
     server.listen(MAX_CLIENTS)
     
     while True:

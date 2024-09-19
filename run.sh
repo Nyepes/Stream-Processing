@@ -10,7 +10,7 @@ dgrep() {
 
 # failure_detector function: Simulates a simple check for failures
 failure_detector() {
-    python src/mp2/failure_detector.py
+    python src/mp2/failure_detector.py "$@"
 }
 
 build() {
@@ -28,7 +28,8 @@ elif [ "$1" == "dgrep" ]; then
   shift
   dgrep "$@"
 elif [ "$1" == "failure_detector" ]; then
-  failure_detector
+  shift
+  failure_detector "$@"
 elif [ "$1" == "build" ]; then
     build
 else

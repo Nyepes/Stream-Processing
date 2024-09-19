@@ -1,11 +1,10 @@
-from src.shared.constants import HOSTS, PORT, MACHINE_SEPARATOR
+from src.shared.constants import HOSTS, LOGGER_PORT, MACHINE_SEPARATOR, RECEIVE_TIMEOUT
 from src.shared.shared import send_data, receive_data
 import threading
 import socket
 import sys
 
 LINE_COUNT = False  # If True prints line count of each process and whole system; Otherwise, prints matching lines
-RECEIVE_TIMEOUT = 5  # Timeout to determine a server has crashed (i.e. process has failed)
 
 total_line_count = 0
 duck = threading.Lock()  # Modify total_line_count without race condition risk
@@ -56,7 +55,7 @@ def query_host(host: str, arguments: str):
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
-            server.connect((host, PORT))
+            server.connect((host, LOGGER_PORT))
 
             send_data(server, arguments)
             result = receive_data(server)
