@@ -8,14 +8,19 @@ from src.mp2.marshalling import create_member_list, create_join_message, decode_
 from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.logging import log
+from src.mp2.time_based_dict import TTLDict
 
 machine_id = -1
 
 member_list = []
 suspicion_list = []
 
+events = TTLDict()
+
 suspicion_list_lock = threading.Lock()
 member_list_lock = threading.Lock()
+
+TTL = 5
 
 def get_random_member():
     return random.choice(member_list)
@@ -35,7 +40,9 @@ def join_member(client_socket):
     membership_data = decode_message(membership_requested)
     data = create_member_list(member_list)
     send_data(client_socket, data)
-    add_member_list(membership_data["id"])
+    member = Member(machine_id = membership_data["id"], time_stamp = membership_data["timestamp"])
+    add_member_list(member)
+    events.set(machine_id, "machine_id", TTL)
 
 def introducer_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,6 +77,11 @@ def join():
     except (ConnectionRefusedError, socket.timeout):
         return -1
 
+def handle_client_ack(data):
+    ### TODO: Implement what happens when data is received and how the ack is handled
+    ### This means updating the current members and the list of events
+    return
+
 def failure_detector():
     failure_detector = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     failure_detector.bind((HOSTS[machine_id - 1], FAILURE_DETECTOR_PORT))
@@ -80,7 +92,9 @@ def failure_detector():
         # Receive data from a client
         data = udp_receive_data(failure_detector)
         log(f"Received message: {data}")
-        # udp_server_socket.sendto(response_message.encode('utf-8'), client_address)
+        handle_client_ack(data)
+        packet = create_ack_message()
+        udp_send_data(failure_detector, events.get_all())
 
 if __name__ == "__main__":
     machine_id = int(sys.argv[1])

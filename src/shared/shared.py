@@ -79,9 +79,18 @@ def receive_data(socket: socket):
     return message
 
 
-def udp_send_data(socket: socket, data):
+def udp_send_data(socket: socket, data, address):
+    """
+    This is intended to be sent in a single packet since more 
+    could possible mean some do not get there. As aresult there is no need 
+    of implementing logic to partition message
+    """
+    if (len(data) >= DATA_LENGTH_BYTES):
+        print("attempted to send too much data")
+        return -1
+    socket.sendto(data, address)
     return
 
 def udp_receive_data(socket: socket):
-    socket.recvfrom(1024)
-    return ""
+    data = socket.recvfrom(DATA_LENGTH_BYTES)
+    return data
