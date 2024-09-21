@@ -66,8 +66,7 @@ def join_member(client_socket):
 
     member = membership_data["id"]
     add_member_list(member)
-    events.set(member, "joined", TTL)
-    clean_up.set(member, "joined", TTL)
+    add_event(member, "joined")
 
     log(f"{member} joined")
 
@@ -109,12 +108,13 @@ def join():
 def handle_failed(id):
     success = remove_member_list(id)
     if (success):
-        events.set(id, "fail", 5)
+        add_event(id, "fail")
 
 def handle_joined(id):
     success = add_member_list(id)
     if (success):
-        events.set(id, "joined", 5)
+        add_event(id, "fail")
+
 
 
 def handle_client_ack(data):

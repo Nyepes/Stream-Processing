@@ -30,9 +30,10 @@ class TTLDict:
         self.condition.notify()
 
         self.lock.release()
+
     def get(self, key):
         self.lock.acquire()
-        val = self.store[key]
+        val = self.store.get(key)
         self.lock.release()
         return val
 
