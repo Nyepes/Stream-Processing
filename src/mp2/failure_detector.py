@@ -66,7 +66,7 @@ def join():
     try: 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
-            server.connect((HOSTS[INTRODUCER_ID - 1], FAILURE_DETECTOR_PORT))
+            server.connect((HOSTS[INTRODUCER_ID - 1], INTRODUCER_PORT))
             send_data(server, create_join_message(machine_id))
             result = receive_data(server)
             decoded = decode_message(result)
