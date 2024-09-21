@@ -2,11 +2,11 @@ import socket
 import sys
 import threading
 import random
-from time import sleep
+from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import create_member_list, create_join_message, decode_message, MessageType, create_ack_message
-from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT, Member
+from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
@@ -41,7 +41,7 @@ def join_member(client_socket):
     membership_data = decode_message(membership_requested)
     data = create_member_list(member_list)
     send_data(client_socket, data)
-    member = Member(machine_id = membership_data["id"], time_stamp = membership_data["timestamp"])
+    member = membership_data
     add_member_list(member)
     events.set(member.machine_id, "joined", TTL)
     log(f"{member.machine_id} joined")
@@ -65,6 +65,7 @@ def introducer_server():
         client_handler.start()
 
 def join():
+    global memberlist
     try: 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
@@ -73,7 +74,7 @@ def join():
             result = receive_data(server)
             decoded = decode_message(result)
             member_list = decoded["members"]
-            member_list.append(INTRODUCER_ID)
+            member_list.append({"id": INTRODUCER_ID, "timestamp": time()})
         return result
     
     except (ConnectionRefusedError, socket.timeout):
@@ -130,7 +131,7 @@ def failure_detector():
         log(f"Received message: {data}")
         handle_client_ack(data)
 
-        packet = create_ack_message(events.get_all())
+        packet = create_ack_message(machine_id, events.get_all())
 
         udp_send_data(failure_detector, packet, address)
 
