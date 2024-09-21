@@ -30,6 +30,12 @@ class TTLDict:
         self.condition.notify()
 
         self.lock.release()
+    def get(self, key):
+        self.lock.acquire()
+        val = self.store[key]
+        self.lock.release()
+        return val
+
 
     def get_all(self):
         data = {}

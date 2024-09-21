@@ -17,11 +17,19 @@ member_list = []
 # suspicion_list = []
 
 events = TTLDict()
+clean_up = TTLDict()
 
 suspicion_list_lock = threading.Lock()
 member_list_lock = threading.Lock()
 
 TTL = 5
+
+def add_event(id, event):
+    if (clean_up.get(id) == event):
+        clean_up.set(id, event, TTL)
+    else:
+        events.set(id, event, TTL)
+        clean_up.set(id, event, TTL)
 
 def get_random_member():
     return random.choice(member_list)
@@ -59,6 +67,7 @@ def join_member(client_socket):
     member = membership_data["id"]
     add_member_list(member)
     events.set(member, "joined", TTL)
+    clean_up.set(member, "joined", TTL)
 
     log(f"{member} joined")
 
