@@ -1,4 +1,4 @@
-from shared.constants import DATA_LENGTH_BYTES
+from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
 
 """
@@ -77,3 +77,21 @@ def receive_data(socket: socket):
         message += received.decode("utf-8")
     
     return message
+
+
+def udp_send_data(socket: socket, data, address):
+    """
+    This is intended to be sent in a single packet since more 
+    could possible mean some do not get there. As aresult there is no need 
+    of implementing logic to partition message
+    """
+    if (len(data) >= 2048):
+        print("attempted to send too much data")
+        return -1
+    message = data.encode("utf-8")
+    socket.sendto(message, address)
+    return
+
+def udp_receive_data(socket: socket):
+    data, address = socket.recvfrom(DATA_LENGTH_BYTES)
+    return data, address
