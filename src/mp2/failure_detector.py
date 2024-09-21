@@ -43,10 +43,10 @@ def join_member(client_socket):
     membership_data = decode_message(membership_requested)
     data = create_member_list(member_list)
     send_data(client_socket, data)
-    member = membership_data
+    member = membership_data["id"]
     add_member_list(member)
-    events.set(member.machine_id, "joined", TTL)
-    log(f"{member.machine_id} joined")
+    events.set(member, "joined", TTL)
+    log(f"{member} joined")
 
 def introducer_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -67,7 +67,6 @@ def introducer_server():
         client_handler.start()
 
 def join():
-    global memberlist
     try: 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
@@ -76,7 +75,8 @@ def join():
             result = receive_data(server)
             decoded = decode_message(result)
             for member in decoded["members"]:
-                add_member_list(member.id)
+                if member["id"] != machine_id:
+                    add_member_list(member["id"])
             add_member_list(INTRODUCER_ID)
         return result
     
