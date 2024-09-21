@@ -93,5 +93,6 @@ def udp_send_data(socket: socket, data, address):
     return
 
 def udp_receive_data(socket: socket):
-    data, address = socket.recvfrom(DATA_LENGTH_BYTES)
-    return data, address
+    data, address = socket.recvfrom(2048)
+    data.decode("utf-8")
+    return json.loads(data), address

@@ -88,8 +88,6 @@ def join():
 def handle_failed(id):
     remove_member_list(id)
     events.set(id, "fail", 5)
-def merge_events():
-
 
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
