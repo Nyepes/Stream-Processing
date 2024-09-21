@@ -21,7 +21,7 @@ class TTLDict:
     def set(self, key, value, ttl):
         expiration_time = time.time() + ttl
 
-        self.lock.lock()
+        self.lock.acquire()
 
         self.store[key] = (value, expiration_time)
         self.condition.notify()
@@ -31,8 +31,8 @@ class TTLDict:
     def get_all(self):
         data = {}
 
-        self.lock.lock()
-        data = self.store()
+        self.lock.acquire()
+        data = self.store
         self.lock.release()
 
         return data
@@ -53,8 +53,9 @@ class TTLDict:
                     break
 
                 # Remove all expired keys
+                copy = self.store.copy()
                 current_time = time.time()
-                for key in self.store:
-                    expiration = self.store[key][1]
+                for key in copy:
+                    expiration = copy[key][1]
                     if (expiration <= current_time):
                         del self.store[key]

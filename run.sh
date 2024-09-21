@@ -14,7 +14,7 @@ failure_detector() {
 }
 
 start() {
-  dgrep_server "$@" &
+  dgrep_server "$@" & 2> /dev/null
   failure_detector "$@"
 }
 

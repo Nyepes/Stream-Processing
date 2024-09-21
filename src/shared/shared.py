@@ -85,10 +85,11 @@ def udp_send_data(socket: socket, data, address):
     could possible mean some do not get there. As aresult there is no need 
     of implementing logic to partition message
     """
-    if (len(data) >= DATA_LENGTH_BYTES):
+    if (len(data) >= 2048):
         print("attempted to send too much data")
         return -1
-    socket.sendto(data, address)
+    message = data.encode("utf-8")
+    socket.sendto(message, address)
     return
 
 def udp_receive_data(socket: socket):
