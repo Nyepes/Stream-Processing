@@ -66,7 +66,8 @@ def query_host(host: str, arguments: str):
     except (ConnectionRefusedError, socket.timeout):
         
         return -1
-
+    except (OSError):
+        return -2
 def print_server_data(host, arguments):
     
     """
@@ -92,6 +93,9 @@ def print_server_data(host, arguments):
     # Connection failed/refused
     if (data == -1):
         print(f"{host}: FAILED")
+        return
+    if (data == -2):
+        print(f"{host}: Unreachable")
         return
 
     # Raw matching strings of machine i or machine.i.log: match count
