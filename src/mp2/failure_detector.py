@@ -107,14 +107,16 @@ def handle_joined(id):
     if (success):
         events.set(id, "joined", 5)
 
+
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
     ### This means updating the current members and the list of events
+    data = data["data"]
     for id, val in data.items():
-        if (val == "failed"):
-            handle_failed(id)
-        if (val == "joined"):
-            handle_joined(id)
+        if (val[0] == "failed"):
+            handle_failed(int(id))
+        if (val[0] == "joined"):
+            handle_joined(int(id))
     log(data)
     return
 

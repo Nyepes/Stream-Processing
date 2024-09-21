@@ -19,9 +19,12 @@ class TTLDict:
         worker_thread.start()
 
     def set(self, key, value, ttl):
+
         expiration_time = time.time() + ttl
 
         self.lock.acquire()
+        if (key in self.store and self.store[key] == value):
+            return
 
         self.store[key] = (value, expiration_time)
         self.condition.notify()
