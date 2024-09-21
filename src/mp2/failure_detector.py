@@ -108,12 +108,12 @@ def join():
 def handle_failed(id):
     success = remove_member_list(id)
     if (success):
-        add_event(id, "fail")
+        add_event(id, "failed")
 
 def handle_joined(id):
     success = add_member_list(id)
     if (success):
-        add_event(id, "fail")
+        add_event(id, "joined")
 
 
 

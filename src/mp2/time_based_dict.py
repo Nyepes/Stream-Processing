@@ -23,7 +23,8 @@ class TTLDict:
         expiration_time = time.time() + ttl
 
         self.lock.acquire()
-        if (key in self.store and self.store[key] == value):
+        if (key in self.store and self.store[key][0] == value):
+            self.lock.release()
             return
 
         self.store[key] = (value, expiration_time)
@@ -32,9 +33,12 @@ class TTLDict:
         self.lock.release()
 
     def get(self, key):
+        val = None
         self.lock.acquire()
-        val = self.store.get(key)
+        if (key in self.store):
+            val = self.store.get(key)[0]
         self.lock.release()
+        print(f"val: + {val}")
         return val
 
 
