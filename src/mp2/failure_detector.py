@@ -40,11 +40,11 @@ def add_member_list(id):
     for member in member_list:
         if (member["id"] == id): 
             member_list_lock.release()
-            return True
+            return False
     member_list.append({"id": id, "timestamp": time()})
 
     member_list_lock.release()
-    return False
+    return True
 
 def remove_member_list(id):
     global member_list
@@ -142,14 +142,10 @@ def handle_timeout(id):
 
 def ping():
     while (1):
-        print(events.get_all())
-        print(member_list)
         if (len(member_list) == 0):
             sleep(1)
-            print("a")
             continue
         member_id = get_random_member()["id"]
-        print(member_id)
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         packet = create_ack_message(machine_id, events.get_all())
@@ -157,17 +153,13 @@ def ping():
         machine_socket.settimeout(0.5)
         try:
             data, address = udp_receive_data(machine_socket)
-            print("Ping Data:", data)
             handle_client_ack(data)
     
         except (ConnectionRefusedError, socket.timeout):
-            print("timeout")
             handle_timeout(member_id)
-        print("hasdlhfa")
         sleep(1)
 
 def ack(data):
-    print("Ping Data:", data)
     handle_client_ack(data)
     return 
 
@@ -206,7 +198,6 @@ if __name__ == "__main__":
     failure_listener.daemon = True
     failure_listener.start()
 
-    print("Pinger")
     pinger = threading.Thread(target = ping)
     pinger.daemon = True
     pinger.start()
