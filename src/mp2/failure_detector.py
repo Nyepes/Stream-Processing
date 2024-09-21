@@ -44,8 +44,9 @@ def remove_member_list(id):
         if (member["id"] == id):
             del member_list[i]
             member_list_lock.release()
-            return
+            return True
     member_list_lock.release()
+    return False
 
 def join_member(client_socket):
     membership_requested = receive_data(client_socket)
@@ -96,8 +97,9 @@ def join():
         return -1
 
 def handle_failed(id):
-    remove_member_list(id)
-    events.set(id, "fail", 5)
+    success = remove_member_list(id)
+    if (success):
+        events.set(id, "fail", 5)
 
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
