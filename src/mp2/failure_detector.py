@@ -30,24 +30,34 @@ def add_member_list(id):
     global member_list
     member_list_lock.acquire()
     for member in member_list:
-        if (member["id"] == id): return
+        if (member["id"] == id): 
+            member_list_lock.release()
+            return
     member_list.append({"id": id, "timestamp": time()})
+
     member_list_lock.release()
 
 def remove_member_list(id):
     global member_list
     member_list_lock.acquire()
-    del member_list[id]
+    for i, member in enumerate(member_list):
+        if (member["id"] == id):
+            del member_list[i]
+            member_list_lock.release()
+            return
     member_list_lock.release()
 
 def join_member(client_socket):
     membership_requested = receive_data(client_socket)
     membership_data = decode_message(membership_requested)
+
     data = create_member_list(member_list)
     send_data(client_socket, data)
+
     member = membership_data["id"]
     add_member_list(member)
     events.set(member, "joined", TTL)
+
     log(f"{member} joined")
 
 def introducer_server():
@@ -60,7 +70,6 @@ def introducer_server():
     while True:
         
         client_socket, _ = server.accept()
-        
         # Creates a new thread for each client
         client_handler = threading.Thread(target=join_member, args=(client_socket, ))
         
@@ -79,6 +88,7 @@ def join():
             for member in decoded["members"]:
                 if member["id"] != machine_id:
                     add_member_list(member["id"])
+
             add_member_list(INTRODUCER_ID)
         return result
     
@@ -92,7 +102,6 @@ def handle_failed(id):
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
     ### This means updating the current members and the list of events
-    print(data)
     for id, val in data.items():
         if (val == "failed"):
             handle_failed(id)
@@ -130,7 +139,9 @@ def ping():
             handle_client_ack(data)
     
         except (ConnectionRefusedError, socket.timeout):
+            print("timeout")
             handle_timeout(member_id)
+        print("hasdlhfa")
         sleep(1)
 
 def ack(data):

@@ -1,6 +1,6 @@
 from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
-
+import json
 """
 
 Helper functions that are used within both client and server 
