@@ -86,7 +86,14 @@ def handle_client_ack(data):
     return
 
 def handle_timeout():
-    log("Timed Out")
+    if (False):
+        log("SUS")
+
+        # TODO: Suspicion
+    else:
+        log("FAILED")
+        # TODO: Fail
+    
 
 def ping():
     while (1):
@@ -111,7 +118,7 @@ def ping():
             handle_timeout()
         sleep(1)
 
-def ack():
+def ack(data):
     log(data)
     return 
 
@@ -128,7 +135,7 @@ def failure_detector():
         # Receive data from a client
         data, address = udp_receive_data(failure_detector)
         log(f"Received message: {data}")
-        handle_client_ack(data)
+        ack(data)
 
         packet = create_ack_message(events.get_all())
 
