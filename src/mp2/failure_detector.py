@@ -104,7 +104,7 @@ def ping():
             sleep(1)
             print("a")
             continue
-        member_id = get_random_member().machine_id
+        member_id = get_random_member()["id"]
         print(member_id)
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
