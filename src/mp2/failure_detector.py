@@ -32,10 +32,11 @@ def add_member_list(id):
     for member in member_list:
         if (member["id"] == id): 
             member_list_lock.release()
-            return
+            return True
     member_list.append({"id": id, "timestamp": time()})
 
     member_list_lock.release()
+    return False
 
 def remove_member_list(id):
     global member_list
@@ -101,12 +102,19 @@ def handle_failed(id):
     if (success):
         events.set(id, "fail", 5)
 
+def handle_joined(id):
+    success = add_member_list(id)
+    if (success):
+        events.set(id, "joined", 5)
+
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
     ### This means updating the current members and the list of events
     for id, val in data.items():
         if (val == "failed"):
             handle_failed(id)
+        if (val == "joined"):
+            handle_joined(id)
     log(data)
     return
 
