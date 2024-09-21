@@ -146,6 +146,7 @@ def ping():
         machine_socket.settimeout(0.5)
         try:
             data, address = udp_receive_data(machine_socket)
+            print("Ping Data:", data)
             handle_client_ack(data)
     
         except (ConnectionRefusedError, socket.timeout):
@@ -155,7 +156,8 @@ def ping():
         sleep(1)
 
 def ack(data):
-    log(data)
+    print("Ping Data:", data)
+    handle_client_ack(data)
     return 
 
 def failure_detector():
