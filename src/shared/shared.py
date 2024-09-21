@@ -92,5 +92,5 @@ def udp_send_data(socket: socket, data, address):
     return
 
 def udp_receive_data(socket: socket):
-    data = socket.recvfrom(DATA_LENGTH_BYTES)
-    return data
+    data, address = socket.recvfrom(DATA_LENGTH_BYTES)
+    return data, address

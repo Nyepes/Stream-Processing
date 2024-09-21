@@ -5,7 +5,7 @@ import random
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import create_member_list, create_join_message, decode_message, MessageType
-from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID
+from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
@@ -13,7 +13,7 @@ from src.mp2.time_based_dict import TTLDict
 machine_id = -1
 
 member_list = []
-suspicion_list = []
+# suspicion_list = []
 
 events = TTLDict()
 
@@ -49,7 +49,7 @@ def introducer_server():
     
     # Lets server reuse address so that it can relaunch quickly
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind((HOSTS[machine_id - 1], FAILURE_DETECTOR_PORT))
+    server.bind((HOSTS[machine_id - 1], INTRODUCER_PORT))
     server.listen(MAX_CLIENTS)
     while True:
         
@@ -82,7 +82,34 @@ def handle_client_ack(data):
     ### This means updating the current members and the list of events
     return
 
+def handle_timeout():
+    log("Timed Out")
+
+def ping():
+
+    while (1):
+        member_id = get_random_member()
+        socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_send_data(failure_detector, create_ack_message(events.get_all()), member_id)
+        socket.settimeout(0.5)
+        try:
+            data, address = udp_receive_data(socket)
+            handle_client_ack(data)
+    
+        except (ConnectionRefusedError, socket.timeout):
+            handle_timeout()
+        return -1
+
+
+        sleep(1)
+
+def ack():
+    return 
+
 def failure_detector():
+    """
+    Listenes for pings from other machines
+    """
     failure_detector = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     failure_detector.bind((HOSTS[machine_id - 1], FAILURE_DETECTOR_PORT))
 
@@ -90,20 +117,30 @@ def failure_detector():
 
     while True:
         # Receive data from a client
-        data = udp_receive_data(failure_detector)
+        data, address = udp_receive_data(failure_detector)
         log(f"Received message: {data}")
         handle_client_ack(data)
-        packet = create_ack_message()
-        udp_send_data(failure_detector, events.get_all())
+
+        packet = create_ack_message(events.get_all())
+
+        udp_send_data(failure_detector, packet, address)
 
 if __name__ == "__main__":
     machine_id = int(sys.argv[1])
-
-    introducer = threading.Thread(target=introducer_server)
-    introducer.daemon = True
-    introducer.start()
-    join()
+    
+    if (machine_id == INTRODUCER_ID):
+        introducer = threading.Thread(target=introducer_server)
+        introducer.daemon = True
+        introducer.start()
+    else:
+        join()
     log("Joined", machine_id)
-    failure_detector()
+
+    failure_listener = threading.Thread(target = failure_detector)
+    failure_listener.daemon = True
+
+    pinger = threading.Thread(target = ping)
+    pinger.daemon = True
+
     
 
