@@ -27,11 +27,13 @@ def get_random_member():
     return random.choice(member_list)
 
 def add_member_list(id):
+    global member_list
     member_list_lock.acquire()
-    member_list.append(id)
+    member_list.append({"id": id, "timestamp": time()})
     member_list_lock.release()
 
 def remove_member_list(id):
+    global member_list
     member_list_lock.acquire()
     del member_list[id]
     member_list_lock.release()
@@ -73,8 +75,9 @@ def join():
             send_data(server, create_join_message(machine_id))
             result = receive_data(server)
             decoded = decode_message(result)
-            member_list = decoded["members"]
-            member_list.append({"id": INTRODUCER_ID, "timestamp": time()})
+            for member in decoded["members"]:
+                add_member_list(member.id)
+            add_member_list(INTRODUCER_ID)
         return result
     
     except (ConnectionRefusedError, socket.timeout):
@@ -104,7 +107,7 @@ def ping():
             sleep(1)
             print("a")
             continue
-        member_id = get_random_member().machine_id
+        member_id = get_random_member()["id"]
         print(member_id)
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
