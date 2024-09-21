@@ -37,16 +37,14 @@ def remove_member_list(id):
     member_list_lock.release()
 
 def join_member(client_socket):
-    print("hello?")
     membership_requested = receive_data(client_socket)
     membership_data = decode_message(membership_requested)
     data = create_member_list(member_list)
     send_data(client_socket, data)
     member = Member(machine_id = membership_data["id"], time_stamp = membership_data["timestamp"])
     add_member_list(member)
-    print(member_list)
-    events.set(machine_id, "machine_id", TTL)
-    log(f"{machine_id} joined")
+    events.set(member.machine_id, "joined", TTL)
+    log(f"{member.machine_id} joined")
 
 def introducer_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -91,8 +89,8 @@ def handle_timeout():
     log("Timed Out")
 
 def ping():
-    print("started")
     while (1):
+        print(events.get_all())
         print(member_list)
         if (len(member_list) == 0):
             sleep(1)
@@ -111,9 +109,6 @@ def ping():
     
         except (ConnectionRefusedError, socket.timeout):
             handle_timeout()
-        return -1
-
-
         sleep(1)
 
 def ack():
