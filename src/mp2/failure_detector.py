@@ -29,6 +29,8 @@ def get_random_member():
 def add_member_list(id):
     global member_list
     member_list_lock.acquire()
+    for member in member_list:
+        if (member["id"] == id): return
     member_list.append({"id": id, "timestamp": time()})
     member_list_lock.release()
 
@@ -83,19 +85,30 @@ def join():
     except (ConnectionRefusedError, socket.timeout):
         return -1
 
+def handle_failed(id):
+    remove_member_list(id)
+    events.set(id, "fail", 5)
+def merge_events():
+
+
 def handle_client_ack(data):
     ### TODO: Implement what happens when data is received and how the ack is handled
     ### This means updating the current members and the list of events
+    print(data)
+    for id, val in data.items():
+        if (val == "failed"):
+            handle_failed(id)
     log(data)
     return
 
-def handle_timeout():
+def handle_timeout(id):
     if (False):
         log("SUS")
 
         # TODO: Suspicion
     else:
-        log("FAILED")
+        handle_failed(id)
+        log(f"{id} FAILED")
         # TODO: Fail
     
 
@@ -119,7 +132,7 @@ def ping():
             handle_client_ack(data)
     
         except (ConnectionRefusedError, socket.timeout):
-            handle_timeout()
+            handle_timeout(member_id)
         sleep(1)
 
 def ack(data):
