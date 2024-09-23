@@ -22,3 +22,7 @@ MACHINE_SEPARATOR = ": "
 MEMBER_LIST_FILE = "member_list.txt"
 
 RECEIVE_TIMEOUT = 5  # Timeout to determine a server has crashed (i.e. process has failed)
+
+INTRODUCER_PORT = 12346
+FAILURE_DETECTOR_PORT = 12347
+INTRODUCER_ID = 1

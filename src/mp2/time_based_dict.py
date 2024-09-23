@@ -48,8 +48,11 @@ class TTLDict:
         self.lock.acquire()
         data = self.store
         self.lock.release()
-
-        return data
+        data_no_ttl = {}
+        for key, val in data.items():
+            # Remove TTL field
+            data_no_ttl[key] = data[key][0]
+        return data_no_ttl
 
     def remove_expired_entries(self):
         with self.condition:

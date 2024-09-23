@@ -1,5 +1,12 @@
 from dataclasses import dataclass
 
-INTRODUCER_PORT = 12346
-FAILURE_DETECTOR_PORT = 12347
-INTRODUCER_ID = 1
+PING_TIME = 1
+TTL = 5
+
+MEMBER_ID = "member_id"
+TIMESTAMP = "timestamp"
+CURRENT_MEMBERS = "current_members"
+DATA = "data"
+
+JOINED = "joined"
+FAILED = "failed"
