@@ -4,22 +4,20 @@ from functools import wraps
 from time import time
 from dataclasses import asdict
 
+from src.mp2.constants import MEMBER_ID, CURRENT_MEMBERS, DATA
 
 
-class MessageType(Enum):
-    JOIN = 1
-    ACK = 2
 
-def create_member_list(member_list):
-    packet = {"members": member_list}
+def current_member_list_packet(member_list):
+    packet = {CURRENT_MEMBERS: member_list}
     return json.dumps(packet, default=asdict)
 
-def create_join_message(id):
-    packet = {"id": id, "timestamp": time()}
-    return json.dumps(packet,default=asdict)
+def request_join_packet(id):
+    packet = {MEMBER_ID: id}
+    return json.dumps(packet, default=asdict)
 
-def create_ack_message(id, data):
-    packet = {"id": id, "data": data}
+def ack_packet(id, data):
+    packet = {MEMBER_ID: id, DATA: data}
     return json.dumps(packet, default=asdict)
 
 def decode_message(message):

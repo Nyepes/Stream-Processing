@@ -5,9 +5,9 @@ import random
 from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
-from src.mp2.marshalling import create_member_list, create_join_message, decode_message, MessageType, create_ack_message
-from src.mp2.constants import FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
-from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
+from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA
+from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
 
@@ -22,9 +22,13 @@ clean_up = TTLDict()
 suspicion_list_lock = threading.Lock()
 member_list_lock = threading.Lock()
 
-TTL = 5
+member_condition_variable = threading.Condition()
 
 def add_event(id, event):
+    """
+    Adds event to the event list if it has not been recieved before
+    We track what has been received through another TTLDict called clean_up set
+    """
     if (clean_up.get(id) == event):
         clean_up.set(id, event, TTL)
     else:
@@ -32,102 +36,72 @@ def add_event(id, event):
         clean_up.set(id, event, TTL)
 
 def get_random_member():
+    """
+    Returns a Member Class of a randomly connected Member
+    """
     return random.choice(member_list)
 
 def add_member_list(id):
+    """
+    Tried adding a member with given id to the member list
+    If it already exists then nothing happens and False is returned
+    If added was succesful True will be returned
+    """
     global member_list
-    member_list_lock.acquire()
-    for member in member_list:
-        if (member["id"] == id): 
-            member_list_lock.release()
-            return False
-    member_list.append({"id": id, "timestamp": time()})
-
-    member_list_lock.release()
+    with member_condition_variable:
+        for member in member_list:
+            if (member[MEMBER_ID] == id or machine_id == id): 
+                #Member already in list or selfs
+                return False
+        # Adds member and records current timestamp
+        member_list.append({MEMBER_ID: id, TIMESTAMP: time()})
+        member_condition_variable.notify()
     return True
 
 def remove_member_list(id):
+    """
+    Removes member with id from member_list.
+    If it does not exist then nothing happens and false is returned
+    If deleted is succesful, True is returned
+    """
     global member_list
-    member_list_lock.acquire()
-    for i, member in enumerate(member_list):
-        if (member["id"] == id):
-            del member_list[i]
-            member_list_lock.release()
-            return True
-    member_list_lock.release()
+    with member_list_lock:
+        for i, member in enumerate(member_list):
+            if (member[MEMBER_ID] == id):
+                del member_list[i]
+                return True
     return False
 
-def join_member(client_socket):
-    membership_requested = receive_data(client_socket)
-    membership_data = decode_message(membership_requested)
-
-    data = create_member_list(member_list)
-    send_data(client_socket, data)
-
-    member = membership_data["id"]
-    add_member_list(member)
-    add_event(member, "joined")
-
-    log(f"{member} joined")
-
-def introducer_server():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # Lets server reuse address so that it can relaunch quickly
-    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind((HOSTS[machine_id - 1], INTRODUCER_PORT))
-    server.listen(MAX_CLIENTS)
-    while True:
-        
-        client_socket, _ = server.accept()
-        # Creates a new thread for each client
-        client_handler = threading.Thread(target=join_member, args=(client_socket, ))
-        
-        # sets daemon to true so that there is no need of joining threads once thread finishes
-        client_handler.daemon = True
-        client_handler.start()
-
-def join():
-    try: 
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.settimeout(RECEIVE_TIMEOUT)
-            server.connect((HOSTS[INTRODUCER_ID - 1], INTRODUCER_PORT))
-            send_data(server, create_join_message(machine_id))
-            result = receive_data(server)
-            decoded = decode_message(result)
-            for member in decoded["members"]:
-                if member["id"] != machine_id:
-                    add_member_list(member["id"])
-
-            add_member_list(INTRODUCER_ID)
-        return result
-    
-    except (ConnectionRefusedError, socket.timeout):
-        return -1
-
 def handle_failed(id):
+    """
+    Handles receiving a failed message
+    Tries to delete, and if succesful spread the message
+    """
     success = remove_member_list(id)
     if (success):
-        add_event(id, "failed")
+        add_event(id, FAILED)
 
 def handle_joined(id):
+    """
+    Handles receiving a new member message
+    Tries to add to member list, and if succesful spread the message
+    """
     success = add_member_list(id)
     if (success):
-        add_event(id, "joined")
+        add_event(id, JOINED)
 
+def update_system_events(data):
+    """
+    Handles and updates members after another member acknowledges or pings machine
+    """
 
-
-def handle_client_ack(data):
-    ### TODO: Implement what happens when data is received and how the ack is handled
-    ### This means updating the current members and the list of events
-    data = data["data"]
-    for id, val in data.items():
-        if (val[0] == "failed"):
+    events = data[DATA]
+    for id, state in events.items():
+        if (state == FAILED):
             handle_failed(int(id))
-        if (val[0] == "joined"):
+        if (state == JOINED):
             handle_joined(int(id))
-    log(data)
-    return
+    log(f"Received ACK: {events}")
 
 def handle_timeout(id):
     if (False):
@@ -135,33 +109,42 @@ def handle_timeout(id):
 
         # TODO: Suspicion
     else:
+        # Timeout so consider it failed
+        # TODO: Maybe retry
         handle_failed(id)
-        log(f"{id} FAILED")
-        # TODO: Fail
+        log(f"{id} {FAILED}")
     
 
 def ping():
+    """
+    Selects random meber and pings to see if still alive
+    At the same time sends data about recent events
+    """
+
     while (1):
-        if (len(member_list) == 0):
-            sleep(1)
-            continue
-        member_id = get_random_member()["id"]
+        # TODO: Condition variable
+        with member_condition_variable:
+            while (len(member_list) == 0):
+                member_condition_variable.wait()
+
+        member_id = get_random_member()[MEMBER_ID]
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        packet = create_ack_message(machine_id, events.get_all())
-        udp_send_data(machine_socket, packet, (HOSTS[member_id - 1], FAILURE_DETECTOR_PORT))
-        machine_socket.settimeout(0.5)
+
+        ping = ack_packet(machine_id, events.get_all())
+        udp_send_data(machine_socket, ping, (HOSTS[member_id - 1], FAILURE_DETECTOR_PORT))
+
+        # Timeout if no response
+        machine_socket.settimeout(PING_TIME)
         try:
-            data, address = udp_receive_data(machine_socket)
-            handle_client_ack(data)
+            ack, address = udp_receive_data(machine_socket)
+            update_system_events(ack)
+            print(member_list)
     
         except (ConnectionRefusedError, socket.timeout):
             handle_timeout(member_id)
-        sleep(1)
-
-def ack(data):
-    handle_client_ack(data)
-    return 
+        # Ping Every PING_TIME seconds
+        sleep(PING_TIME)
 
 def failure_detector():
     """
@@ -172,28 +155,105 @@ def failure_detector():
 
     log(f"UDP server listening on {HOSTS[machine_id - 1]}:{FAILURE_DETECTOR_PORT}")
 
+    # Waits and listens for pings from other machines
+    # Responds with the current events
     while True:
-        # Receive data from a client
-        data, address = udp_receive_data(failure_detector)
-        log(f"Received message: {data}")
-        ack(data)
+        ping, address = udp_receive_data(failure_detector)
 
-        packet = create_ack_message(machine_id, events.get_all())
+        log(f"Received message: {ping}")
+        update_system_events(ping)
 
-        udp_send_data(failure_detector, packet, address)
+        ack = ack_packet(machine_id, events.get_all())
+        udp_send_data(failure_detector, ack, address)
+
+
+# ------------------------------------------
+# --------------- INTRODUCER ---------------
+# ------------------------------------------
+
+def introduce_member(client_socket):
+    """
+    Introducer calls this method to add new member to System
+    It adds new member to list and creates an event that the user joined
+    """
+    # Receives who is trying to join
+    membership_requested = receive_data(client_socket)
+    membership_data = decode_message(membership_requested)
+
+    # Creates and sends a message containing the member list
+    data = current_member_list_packet(member_list)
+    send_data(client_socket, data)
+
+    # Adds member to member_list and creates an event
+    member = membership_data[MEMBER_ID]
+    sleep(PING_TIME)
+    add_member_list(member)
+    add_event(member, JOINED)
+
+    log(f"{member} {JOINED}")
+
+def start_introducer_server():
+    """
+    Creates an introducer server with TCP so that
+    clients can join by connecting.
+    """
+
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # Reuse address
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    server.bind((HOSTS[machine_id - 1], INTRODUCER_PORT))
+    server.listen(MAX_CLIENTS)
+    while True:
+        
+        client_socket, address = server.accept()
+        client_handler = threading.Thread(target=introduce_member, args=(client_socket, ))
+        # Set daemon so that thread does not need to join
+        client_handler.daemon = True
+        client_handler.start()
+
+def join():
+    """
+    Called by each new member to connect with introducer
+    Fills out the membership list with whatever the introducer has.
+    """
+    try: 
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.settimeout(RECEIVE_TIMEOUT)
+            server.connect((HOSTS[INTRODUCER_ID - 1], INTRODUCER_PORT))
+
+            # Sends request to join to introducer
+            send_data(server, request_join_packet(machine_id))
+    
+            result = receive_data(server)
+            decoded = decode_message(result)
+
+            # Adds each member to its member list
+            for member in decoded[CURRENT_MEMBERS]:
+                add_member_list(member[MEMBER_ID])
+
+            # Adds introducer as well
+            add_member_list(INTRODUCER_ID)
+        return result
+    
+    except (ConnectionRefusedError, socket.timeout):
+        # If Introducer is down or too slow then timeout
+        log("Introducer failed: Timeout", machine_id)
+        return -1
 
 if __name__ == "__main__":
     machine_id = int(sys.argv[1])
     
     if (machine_id == INTRODUCER_ID):
-
-        introducer = threading.Thread(target=introducer_server)
+        introducer = threading.Thread(target=start_introducer_server)
         introducer.daemon = True
         introducer.start()
     else:
         join()
 
-    log("Joined", machine_id)
+    log(JOINED, machine_id)
+
     failure_listener = threading.Thread(target = failure_detector)
     failure_listener.daemon = True
     failure_listener.start()
