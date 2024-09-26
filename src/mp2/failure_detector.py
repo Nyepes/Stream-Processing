@@ -2,11 +2,14 @@ import socket
 import sys
 import threading
 import random
+import os
+import signal
+
 from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
-from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
@@ -14,15 +17,59 @@ from src.mp2.time_based_dict import TTLDict
 machine_id = -1
 
 member_list = []
-# suspicion_list = []
+suspicion_list = []
 
 events = TTLDict()
 clean_up = TTLDict()
 
 suspicion_list_lock = threading.Lock()
 member_list_lock = threading.Lock()
+config_lock = threading.Lock()
 
 member_condition_variable = threading.Condition()
+
+configuration = {
+    "id": 3, 
+    "suspicion_enabled": True, 
+    "print_suspicion": False, 
+    "leaving": False
+}
+
+def kill(time):
+    """
+    kills process after time seconds. 
+    Useful for leaving gracefully
+    """
+    sleep(time)
+    os.kill(os.getpid(), signal.SIGTERM)
+
+
+def update_member_list_file():
+    with open("src/member_list.txt", "w") as member_list:
+        for member in member_list:
+            file.write(f"{member}\n")
+
+def poll_configuration():
+    """
+    Updates configuration with whatever is wirtten on the configuration file
+    """
+    with open("src/mp2/metadata.json", "r") as metadata:
+        with config_lock:
+            configuration = json.load(metadata)
+    if configuration[LEAVING]:
+        add_event(machine_id, LEAVING)
+        # Set up timer to kill after all nodes received information
+        # Kills after 10 seconds
+        threading.Thread(target=kill, args=(10,))
+        thread.start()
+
+def get_config(key):
+    """
+    returns a value from the configuration file
+    """
+    with config_lock:
+        val = configuration[key]
+    return val
 
 def add_event(id, event):
     """
@@ -48,13 +95,14 @@ def add_member_list(id):
     If added was succesful True will be returned
     """
     global member_list
-    with member_list_lock:
+    with member_condition_variable:
         for member in member_list:
-            if (member[MEMBER_ID] == id): 
-                #Member already in list
+            if (member[MEMBER_ID] == id or machine_id == id): 
+                #Member already in list or selfs
                 return False
         # Adds member and records current timestamp
         member_list.append({MEMBER_ID: id, TIMESTAMP: time()})
+        update_member_list_file()
         member_condition_variable.notify()
     return True
 
@@ -69,6 +117,7 @@ def remove_member_list(id):
         for i, member in enumerate(member_list):
             if (member[MEMBER_ID] == id):
                 del member_list[i]
+                update_member_list_file()
                 return True
     return False
 
@@ -97,9 +146,9 @@ def update_system_events(data):
 
     events = data[DATA]
     for id, state in events.items():
-        if (val == FAILED):
+        if (state == FAILED):
             handle_failed(int(id))
-        if (val == JOINED):
+        if (state == JOINED):
             handle_joined(int(id))
     log(f"Received ACK: {events}")
 
@@ -121,6 +170,9 @@ def ping():
     At the same time sends data about recent events
     """
 
+    # Make sure we get latest updates
+    poll_configuration()
+
     while (1):
         # TODO: Condition variable
         with member_condition_variable:
@@ -139,6 +191,7 @@ def ping():
         try:
             ack, address = udp_receive_data(machine_socket)
             update_system_events(ack)
+            print(member_list)
     
         except (ConnectionRefusedError, socket.timeout):
             handle_timeout(member_id)
@@ -237,7 +290,7 @@ def join():
     
     except (ConnectionRefusedError, socket.timeout):
         # If Introducer is down or too slow then timeout
-        log("Introducer failed: Timeout")
+        log("Introducer failed: Timeout", machine_id)
         return -1
 
 if __name__ == "__main__":
@@ -249,7 +302,7 @@ if __name__ == "__main__":
         introducer.start()
     else:
         join()
-
+    poll_configuration()
     log(JOINED, machine_id)
 
     failure_listener = threading.Thread(target = failure_detector)

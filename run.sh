@@ -18,6 +18,30 @@ start() {
   failure_detector "$@"
 }
 
+members() {
+  python src/mp2/utils/list_members.py
+}
+
+get_id() {
+  python "src/mp2/utils/get_id.py"
+}
+
+toggle_sus() {
+  python "src/mp2/utils/toggle_suspicion.py"
+}
+
+toggle_print_sus() {
+  python "src/mp2/utils/toggle_print_suspicion.py"
+}
+
+sus_status() {
+  python "src/mp2/utils/suspicion_status.py"
+}
+
+leave() {
+  python "src/mp2/utils/leave.py"
+}
+
 build() {
     export PYTHONPATH="$PYTHONPATH:/src"
     python -m ensurepip --default-pip
@@ -26,6 +50,8 @@ build() {
 
 # Call the functions based on arguments
 export PYTHONPATH="$PYTHONPATH:/src"
+export ID=3
+
 if [ "$1" == "dgrep_server" ]; then
     shift
     dgrep_server "$@"
@@ -40,7 +66,20 @@ elif [ "$1" == "build" ]; then
 elif [ "$1" == "start" ]; then
   shift
   start "$@"
+elif [ "$1" == "list_mem" ]; then
+  members "$@"
+elif [ "$1" == "list_self" ]; then
+  get_id "$@"
+elif [ "$1" == "toggle_sus" ]; then
+  toggle_sus "$@"
+elif [ "$1" == "sus_status" ]; then
+  sus_status "$@"
+elif [ "$1" == "toggle_print_sus" ]; then
+  toggle_print_sus "$@"
+elif [ "$1" == "leave" ]; then
+  leave "$@"
 else
-  echo "Usage: $0 {dgrep|failure_detector}"
+  echo "$1"
+  echo "Command not found"
   exit 1
 fi
