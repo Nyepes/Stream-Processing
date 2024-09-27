@@ -193,10 +193,7 @@ def ping():
     Selects random meber and pings to see if still alive
     At the same time sends data about recent events
     """
-
-
     while (1):
-        # TODO: Condition variable
         with member_condition_variable:
             while (len(member_list) == 0):
                 member_condition_variable.wait()

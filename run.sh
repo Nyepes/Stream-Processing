@@ -10,6 +10,7 @@ dgrep() {
 
 # failure_detector function: Simulates a simple check for failures
 failure_detector() {
+  export ID="$1"
   python src/mp2/failure_detector.py "$@"
 }
 
@@ -50,7 +51,6 @@ build() {
 
 # Call the functions based on arguments
 export PYTHONPATH="$PYTHONPATH:/src"
-export ID=2
 
 if [ "$1" == "dgrep_server" ]; then
     shift
