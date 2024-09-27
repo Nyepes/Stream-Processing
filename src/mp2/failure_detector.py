@@ -168,7 +168,7 @@ def update_system_events(data):
     events = data[DATA]
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
-            change_sus_status(status)
+            change_sus_status(state)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
