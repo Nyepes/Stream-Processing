@@ -38,7 +38,7 @@ class TTLDict:
         if (key in self.store):
             val = self.store.get(key)[0]
         self.lock.release()
-        print(f"val: + {val}")
+        print(f"{key} -> val: + {val}")
         return val
 
 
