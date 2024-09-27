@@ -156,9 +156,9 @@ def handle_joined(id):
         add_event(id, JOINED)
 
 def change_sus_status(status):
-    if (get_config["SUS"] != status):
-        add_event("SUS", status)
-        set_config("SUS", status)
+    if (get_config[SUSPICION_ENABLED] != status):
+        add_event(SUSPICION_ENABLED, status)
+        set_config(SUSPICION_ENABLED, status)
 
 def update_system_events(data):
     """
@@ -167,7 +167,7 @@ def update_system_events(data):
 
     events = data[DATA]
     for id, state in events.items():
-        if (id == "SUS"):
+        if (id == SUSPICION_ENABLED):
             change_sus_status(status)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
