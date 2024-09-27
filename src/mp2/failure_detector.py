@@ -156,7 +156,7 @@ def handle_joined(id):
         add_event(id, JOINED)
 
 def change_sus_status(status):
-    if (get_config[SUSPICION_ENABLED] != status):
+    if (get_config(SUSPICION_ENABLED) != status):
         add_event(SUSPICION_ENABLED, status)
         set_config(SUSPICION_ENABLED, status)
 
@@ -177,8 +177,8 @@ def update_system_events(data):
     log(f"Received ACK: {events}")
 
 def handle_timeout(id):
-    if (get_config[SUSPICION_ENABLED]):
-        if (get_config[PRINT_SUSPICION]):
+    if (get_config(SUSPICION_ENABLED)):
+        if (get_config(PRINT_SUSPICION)):
             print(f"Suspecting {id}")
         log("SUS")
 
