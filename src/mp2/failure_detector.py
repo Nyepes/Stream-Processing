@@ -160,7 +160,7 @@ def update_system_events(data):
 
     events = data[DATA]
     for id, state in events.items():
-        if (state == FAILED or LEAVING):
+        if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
