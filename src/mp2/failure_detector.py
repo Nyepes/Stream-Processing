@@ -29,9 +29,9 @@ config_lock = threading.Lock()
 member_condition_variable = threading.Condition()
 
 configuration = {
-    "suspicion_enabled": True, 
-    "print_suspicion": False, 
-    "leaving": False
+    SUSPICION_ENABLED: True, 
+    PRINT_SUSPICION: False, 
+    LEAVING: False
 }
 
 def kill(time):
@@ -49,6 +49,7 @@ def update_member_list_file():
             file.write(f"{member[MEMBER_ID]}\n")
 
 def poll_configuration():
+    global configuration
     """
     Updates configuration with whatever is wirtten on the configuration file
     """
@@ -93,6 +94,7 @@ def add_event(id, event):
     if (clean_up.get(id) == event):
         clean_up.set(id, event, TTL)
     else:
+        if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
         clean_up.set(id, event, TTL)
 
@@ -187,11 +189,12 @@ def update_system_events(data):
     log(f"Received ACK: {events}")
 
 def handle_suspect(id):
-    with handle_suspect:
+    with suspicion_list_lock:
         if (id not in suspicion_list):
             add_event(id, SUSPICION)
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
+
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
         handle_suspect(id)
