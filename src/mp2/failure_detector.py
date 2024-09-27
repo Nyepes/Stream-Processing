@@ -53,14 +53,17 @@ def poll_configuration():
     Updates configuration with whatever is wirtten on the configuration file
     """
     with open("src/mp2/metadata.json", "r") as metadata:
-        with config_lock:
-            configuration = json.load(metadata)
-    if configuration[LEAVING]:
+        new_configuration = json.load(metadata)
+    if (get_config(SUSPICION_ENABLED) != new_configuration[SUSPICION_ENABLED]):
+        add_event(SUSPICION_ENABLED, new_configuration[SUSPICION_ENABLED])
+    if new_configuration[LEAVING]:
         add_event(machine_id, LEAVING)
         # Set up timer to kill after all nodes received information
         # Kills after 10 seconds
         thread = threading.Thread(target=kill, args=(10,))
         thread.start()
+    with config_lock:
+        configuration = new_configuration
 
 def get_config(key):
     """
@@ -152,6 +155,11 @@ def handle_joined(id):
     if (success):
         add_event(id, JOINED)
 
+def change_sus_status(status):
+    if (get_config(SUSPICION_ENABLED) != status):
+        add_event(SUSPICION_ENABLED, status)
+        set_config(SUSPICION_ENABLED, status)
+
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
@@ -159,20 +167,23 @@ def update_system_events(data):
 
     events = data[DATA]
     for id, state in events.items():
+        if (id == SUSPICION_ENABLED):
+            change_sus_status(state)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
+        
     log(f"Received ACK: {events}")
 
 def handle_timeout(id):
-    if (False):
+    if (get_config(SUSPICION_ENABLED)):
+        if (get_config(PRINT_SUSPICION)):
+            print(f"Suspecting {id}")
         log("SUS")
 
         # TODO: Suspicion
     else:
-        # Timeout so consider it failed
-        # TODO: Maybe retry
         handle_failed(id)
         log(f"{id} {FAILED}")
     
