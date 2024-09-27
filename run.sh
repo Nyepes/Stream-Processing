@@ -50,7 +50,7 @@ build() {
 
 # Call the functions based on arguments
 export PYTHONPATH="$PYTHONPATH:/src"
-export ID=3
+export ID=2
 
 if [ "$1" == "dgrep_server" ]; then
     shift

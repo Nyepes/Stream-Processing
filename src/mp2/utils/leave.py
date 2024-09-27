@@ -1,4 +1,5 @@
-from src.mp2.shared.constants import LEAVING
+from src.mp2.constants import LEAVING
+import json
 
 with open("src/mp2/metadata.json", "r") as metadata:
     dict_data = json.load(metadata)

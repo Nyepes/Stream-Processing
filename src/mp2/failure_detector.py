@@ -4,7 +4,7 @@ import threading
 import random
 import os
 import signal
-
+import json
 from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
@@ -41,13 +41,14 @@ def kill(time):
     Useful for leaving gracefully
     """
     sleep(time)
+
     os.kill(os.getpid(), signal.SIGTERM)
 
 
 def update_member_list_file():
-    with open("src/member_list.txt", "w") as member_list:
+    with open("src/member_list.txt", "w") as file:
         for member in member_list:
-            file.write(f"{member}\n")
+            file.write(f"{member[0]}\n")
 
 def poll_configuration():
     """
@@ -60,7 +61,7 @@ def poll_configuration():
         add_event(machine_id, LEAVING)
         # Set up timer to kill after all nodes received information
         # Kills after 10 seconds
-        threading.Thread(target=kill, args=(10,))
+        thread = threading.Thread(target=kill, args=(10,))
         thread.start()
 
 def get_config(key):
@@ -170,14 +171,17 @@ def ping():
     At the same time sends data about recent events
     """
 
-    # Make sure we get latest updates
-    poll_configuration()
 
     while (1):
         # TODO: Condition variable
         with member_condition_variable:
             while (len(member_list) == 0):
                 member_condition_variable.wait()
+                poll_configuration()
+
+        
+        # Get Updates on configuration
+        poll_configuration()
 
         member_id = get_random_member()[MEMBER_ID]
 
