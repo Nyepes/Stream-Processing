@@ -41,14 +41,13 @@ def kill(time):
     Useful for leaving gracefully
     """
     sleep(time)
-
     os.kill(os.getpid(), signal.SIGTERM)
 
 
 def update_member_list_file():
     with open("src/member_list.txt", "w") as file:
         for member in member_list:
-            file.write(f"{member[0]}\n")
+            file.write(f"{member[MEMBER_ID]}\n")
 
 def poll_configuration():
     """
@@ -71,6 +70,18 @@ def get_config(key):
     with config_lock:
         val = configuration[key]
     return val
+
+def set_config(key, val):
+    """
+    Sets a new value for the configuration and stores the file
+    Useful to change before exiting and leaving
+    Also useful to set the state of suspicion
+    """
+    with config_lock:
+        configuration[key] = val
+        with open("src/mp2/metadata.json", "w") as file:
+            json_data = json.dump(configuration, file)
+
 
 def add_event(id, event):
     """
@@ -95,12 +106,14 @@ def add_member_list(id):
     If it already exists then nothing happens and False is returned
     If added was succesful True will be returned
     """
+
     global member_list
     with member_condition_variable:
         for member in member_list:
             if (member[MEMBER_ID] == id or machine_id == id): 
                 #Member already in list or selfs
                 return False
+
         # Adds member and records current timestamp
         member_list.append({MEMBER_ID: id, TIMESTAMP: time()})
         update_member_list_file()
@@ -147,7 +160,7 @@ def update_system_events(data):
 
     events = data[DATA]
     for id, state in events.items():
-        if (state == FAILED):
+        if (state == FAILED or LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
@@ -300,13 +313,13 @@ def join():
 
 if __name__ == "__main__":
     machine_id = int(sys.argv[1])
-    
     if (machine_id == INTRODUCER_ID):
         introducer = threading.Thread(target=start_introducer_server)
         introducer.daemon = True
         introducer.start()
     else:
         join()
+    set_config(LEAVING, False)
     poll_configuration()
     log(JOINED, machine_id)
 
