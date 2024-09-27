@@ -9,12 +9,13 @@ from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
-from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS, INCARNATION
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
 
 machine_id = -1
+incarnation = 0
 
 member_list = []
 suspicion_list = {}
@@ -27,6 +28,8 @@ member_list_lock = threading.Lock()
 config_lock = threading.Lock()
 
 member_condition_variable = threading.Condition()
+
+
 
 configuration = {
     SUSPICION_ENABLED: True, 
@@ -105,7 +108,7 @@ def get_random_member():
     """
     return random.choice(member_list)
 
-def add_member_list(id):
+def add_member_list(id, incarnation = 0):
     """
     Tried adding a member with given id to the member list
     If it already exists then nothing happens and False is returned
@@ -121,7 +124,7 @@ def add_member_list(id):
                 return False
 
         # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time()})
+        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: add_member_list})
         update_member_list_file()
         member_condition_variable.notify()
     return True
@@ -146,7 +149,6 @@ def handle_failed(id):
     Handles receiving a failed message
     Tries to delete, and if succesful spread the message
     """
-    print("Failed?")
     success = remove_member_list(id)
     if (success):
         add_event(id, FAILED)
@@ -171,6 +173,12 @@ def remove_sus(id):
             del suspicion_list[id]
             add_event(id, NOT_SUS)
 
+def update_incarnation_number(id, number):
+    with member_list_lock:
+        for member in member_list:
+            if member[MEMBER_ID] == id:
+                member[INCARNATION] = number
+
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
@@ -182,6 +190,8 @@ def update_system_events(data):
         if (id == SUSPICION_ENABLED):
             change_sus_status(state)
             continue
+        if (state[:2] == "OK"):
+            update_incarnation_number(id, int(state[2:]))
         if (state == NOT_SUS):
             remove_sus(id)
         if (state == FAILED or state == LEAVING):
@@ -192,23 +202,25 @@ def update_system_events(data):
     log(f"Received ACK: {events}")
 
 def handle_suspect(id):
+    ## If Self
+    if (id == machine_id):
+        incarnation += 1
+        events.add_event(machine_id, f"{OK}{incarnation}")
+        return
     with suspicion_list_lock:
         if (id not in suspicion_list):
             add_event(id, SUSPICION)
-            suspicion_list[id] = (time())
+            suspicion_list[id] = (time(),)
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
 
 def handle_timeout(id):
-    print('timeout')
     if (get_config(SUSPICION_ENABLED)):
-        print('sus')
         handle_suspect(id)
         log("SUS")
 
         # TODO: Suspicion
     else:
-        print("failed")
         handle_failed(id)
         log(f"{id} {FAILED}")
     
@@ -249,7 +261,6 @@ def ping():
         # Timeout if no response
         machine_socket.settimeout(PING_TIME)
         try:
-            print(member_list)
             ack, address = udp_receive_data(machine_socket)
             update_system_events(ack)
     
@@ -293,7 +304,9 @@ def introduce_member(client_socket):
     membership_data = decode_message(membership_requested)
 
     # Creates and sends a message containing the member list
-    data = current_member_list_packet(member_list)
+    with member_list_lock:
+        member_list_copy = member_list.copy()
+    data = current_member_list_packet(member_list_copy)
     send_data(client_socket, data)
 
     # Adds member to member_list and creates an event

@@ -17,7 +17,7 @@ LEAVING = "leaving"
 NOT_SUS = "not_sus"
 SUSPICION = "suspicion"
 
-
+INCARNATION = "incarnation"
 ### CONFIGURATION ###
 
 SUSPICION_ENABLED = "suspicion_enabled"
