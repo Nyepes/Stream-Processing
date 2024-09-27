@@ -124,7 +124,7 @@ def add_member_list(id, incarnation = 0):
                 return False
 
         # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: add_member_list})
+        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
         update_member_list_file()
         member_condition_variable.notify()
     return True
