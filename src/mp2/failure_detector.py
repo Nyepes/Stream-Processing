@@ -65,6 +65,7 @@ def poll_configuration():
         thread.start()
     with config_lock:
         configuration = new_configuration
+    
 
 def get_config(key):
     """
@@ -112,9 +113,10 @@ def add_member_list(id):
     """
 
     global member_list
+    if (machine_id == id): return False
     with member_condition_variable:
         for member in member_list:
-            if (member[MEMBER_ID] == id or machine_id == id): 
+            if (member[MEMBER_ID] == id): 
                 #Member already in list or selfs
                 return False
 
@@ -196,12 +198,15 @@ def handle_suspect(id):
         print(f"Suspecting {id}")
 
 def handle_timeout(id):
+    print('timeout')
     if (get_config(SUSPICION_ENABLED)):
+        print('sus')
         handle_suspect(id)
         log("SUS")
 
         # TODO: Suspicion
     else:
+        print("failed")
         handle_failed(id)
         log(f"{id} {FAILED}")
     
@@ -231,9 +236,9 @@ def ping():
         # Timeout if no response
         machine_socket.settimeout(PING_TIME)
         try:
+            print(member_list)
             ack, address = udp_receive_data(machine_socket)
             update_system_events(ack)
-            print(member_list)
     
         except (ConnectionRefusedError, socket.timeout):
             handle_timeout(member_id)
