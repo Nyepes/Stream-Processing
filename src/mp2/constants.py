@@ -14,8 +14,8 @@ DATA = "data"
 JOINED = "joined"
 FAILED = "failed"
 LEAVING = "leaving"
+NOT_SUS = "not_sus"
 SUSPICION = "suspicion"
-TOGGLE_SUSPICION = "toggle_suspicion"
 
 
 ### CONFIGURATION ###

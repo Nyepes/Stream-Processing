@@ -9,7 +9,7 @@ from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
-from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
@@ -17,7 +17,7 @@ from src.mp2.time_based_dict import TTLDict
 machine_id = -1
 
 member_list = []
-suspicion_list = []
+suspicion_list = {}
 
 events = TTLDict()
 clean_up = TTLDict()
@@ -29,9 +29,9 @@ config_lock = threading.Lock()
 member_condition_variable = threading.Condition()
 
 configuration = {
-    "suspicion_enabled": True, 
-    "print_suspicion": False, 
-    "leaving": False
+    SUSPICION_ENABLED: True, 
+    PRINT_SUSPICION: False, 
+    LEAVING: False
 }
 
 def kill(time):
@@ -49,13 +49,18 @@ def update_member_list_file():
             file.write(f"{member[MEMBER_ID]}\n")
 
 def poll_configuration():
+    
+    global configuration
     """
     Updates configuration with whatever is wirtten on the configuration file
     """
+    
     with open("src/mp2/metadata.json", "r") as metadata:
         new_configuration = json.load(metadata)
+    
     if (get_config(SUSPICION_ENABLED) != new_configuration[SUSPICION_ENABLED]):
         add_event(SUSPICION_ENABLED, new_configuration[SUSPICION_ENABLED])
+    
     if new_configuration[LEAVING]:
         add_event(machine_id, LEAVING)
         # Set up timer to kill after all nodes received information
@@ -93,6 +98,7 @@ def add_event(id, event):
     if (clean_up.get(id) == event):
         clean_up.set(id, event, TTL)
     else:
+        if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
         clean_up.set(id, event, TTL)
 
@@ -160,15 +166,25 @@ def change_sus_status(status):
         add_event(SUSPICION_ENABLED, status)
         set_config(SUSPICION_ENABLED, status)
 
+def remove_sus(id):
+    with suspicion_list_lock:
+        if id in suspicion_list:
+            del suspicion_list[id]
+            add_event(id, NOT_SUS)
+
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
     """
-
-    events = data[DATA]
+    id = data[MEMBER_ID]
+    remove_sus(id)
+    events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
             change_sus_status(state)
+            continue
+        if (state == NOT_SUS):
+            remove_sus(id)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
@@ -176,10 +192,16 @@ def update_system_events(data):
         
     log(f"Received ACK: {events}")
 
+def handle_suspect(id):
+    with suspicion_list_lock:
+        if (id not in suspicion_list):
+            add_event(id, SUSPICION)
+    if (get_config(PRINT_SUSPICION)):
+        print(f"Suspecting {id}")
+
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
-        if (get_config(PRINT_SUSPICION)):
-            print(f"Suspecting {id}")
+        handle_suspect(id)
         log("SUS")
 
         # TODO: Suspicion
