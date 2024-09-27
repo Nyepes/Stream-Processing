@@ -144,6 +144,7 @@ def handle_failed(id):
     Handles receiving a failed message
     Tries to delete, and if succesful spread the message
     """
+    print("Failed?")
     success = remove_member_list(id)
     if (success):
         add_event(id, FAILED)
@@ -192,6 +193,7 @@ def handle_suspect(id):
     with suspicion_list_lock:
         if (id not in suspicion_list):
             add_event(id, SUSPICION)
+            suspicion_list[id] = (time())
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
 
@@ -205,6 +207,15 @@ def handle_timeout(id):
         handle_failed(id)
         log(f"{id} {FAILED}")
     
+
+def reap_suspect_list():
+    cur_time = time()
+    with suspicion_list_lock:
+        copy = suspicion_list.copy()
+        for suspect, values in copy.items():
+            if (values[0]  + TTL < cur_time):
+                del suspicion_list[suspect]
+                handle_failed(suspect)
 
 def ping():
     """
@@ -220,6 +231,8 @@ def ping():
         
         # Get Updates on configuration
         poll_configuration()
+
+        reap_suspect_list()
 
         member_id = get_random_member()[MEMBER_ID]
 
