@@ -9,7 +9,7 @@ from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
-from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
@@ -17,7 +17,7 @@ from src.mp2.time_based_dict import TTLDict
 machine_id = -1
 
 member_list = []
-suspicion_list = []
+suspicion_list = {}
 
 events = TTLDict()
 clean_up = TTLDict()
@@ -160,15 +160,25 @@ def change_sus_status(status):
         add_event(SUSPICION_ENABLED, status)
         set_config(SUSPICION_ENABLED, status)
 
+def remove_sus(id):
+    with suspicion_list_lock:
+        if id in suspicion_list:
+            del suspicion_list[id]
+            add_event(id, NOT_SUS)
+
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
     """
-
-    events = data[DATA]
+    id = data[MEMBER_ID]
+    remove_sus(id)
+    events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
             change_sus_status(state)
+            continue
+        if (state == NOT_SUS):
+            remove_sus(id)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
@@ -176,10 +186,15 @@ def update_system_events(data):
         
     log(f"Received ACK: {events}")
 
+def handle_suspect(id):
+    with handle_suspect:
+        if (id not in suspicion_list):
+            add_event(id, SUSPICION)
+    if (get_config(PRINT_SUSPICION)):
+        print(f"Suspecting {id}")
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
-        if (get_config(PRINT_SUSPICION)):
-            print(f"Suspecting {id}")
+        handle_suspect(id)
         log("SUS")
 
         # TODO: Suspicion
