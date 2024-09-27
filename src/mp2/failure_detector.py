@@ -69,6 +69,7 @@ def poll_configuration():
         thread.start()
     with config_lock:
         configuration = new_configuration
+    
 
 def get_config(key):
     """
@@ -85,30 +86,40 @@ def set_config(key, val):
     Also useful to set the state of suspicion
     """
     with config_lock:
+        
         configuration[key] = val
+        
         with open("src/mp2/metadata.json", "w") as file:
             json_data = json.dump(configuration, file)
 
 
 def add_event(id, event):
+    
     """
     Adds event to the event list if it has not been recieved before
     We track what has been received through another TTLDict called clean_up set
     """
+    
     if (clean_up.get(id) == event):
+        
         clean_up.set(id, event, TTL)
+    
     else:
+        
         if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
         clean_up.set(id, event, TTL)
 
 def get_random_member():
+    
     """
     Returns a Member Class of a randomly connected Member
     """
+
     return random.choice(member_list)
 
 def add_member_list(id):
+    
     """
     Tried adding a member with given id to the member list
     If it already exists then nothing happens and False is returned
@@ -116,9 +127,10 @@ def add_member_list(id):
     """
 
     global member_list
+    if (machine_id == id): return False
     with member_condition_variable:
         for member in member_list:
-            if (member[MEMBER_ID] == id or machine_id == id): 
+            if (member[MEMBER_ID] == id): 
                 #Member already in list or selfs
                 return False
 
@@ -196,6 +208,7 @@ def handle_suspect(id):
     with suspicion_list_lock:
         if (id not in suspicion_list):
             add_event(id, SUSPICION)
+            suspicion_list[id] = (time(),)
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
 
@@ -209,6 +222,15 @@ def handle_timeout(id):
         handle_failed(id)
         log(f"{id} {FAILED}")
     
+
+def reap_suspect_list():
+    cur_time = time()
+    with suspicion_list_lock:
+        copy = suspicion_list.copy()
+        for suspect, values in copy.items():
+            if (values[0]  + TTL < cur_time):
+                del suspicion_list[suspect]
+                handle_failed(suspect)
 
 def ping():
     """
@@ -225,6 +247,8 @@ def ping():
         # Get Updates on configuration
         poll_configuration()
 
+        reap_suspect_list()
+
         member_id = get_random_member()[MEMBER_ID]
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -237,7 +261,6 @@ def ping():
         try:
             ack, address = udp_receive_data(machine_socket)
             update_system_events(ack)
-            print(member_list)
     
         except (ConnectionRefusedError, socket.timeout):
             handle_timeout(member_id)
