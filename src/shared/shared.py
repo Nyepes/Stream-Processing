@@ -1,6 +1,11 @@
 from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
 import json
+import random
+
+
+PACKAGE_DROP_RATE = 0.001
+
 """
 
 Helper functions that are used within both client and server 
@@ -85,10 +90,14 @@ def udp_send_data(socket: socket, data, address):
     could possible mean some do not get there. As aresult there is no need 
     of implementing logic to partition message
     """
+    if (random.random() < PACKAGE_DROP_RATE):
+        return
+
     if (len(data) >= 2048):
         print("attempted to send too much data")
         return -1
     message = data.encode("utf-8")
+    # print(len(message))
     socket.sendto(message, address)
     return
 

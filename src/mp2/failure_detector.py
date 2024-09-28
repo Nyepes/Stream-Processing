@@ -9,12 +9,14 @@ from time import time, sleep
 
 from src.shared.shared import send_data, receive_data, udp_receive_data, udp_send_data
 from src.mp2.marshalling import current_member_list_packet, request_join_packet, decode_message, ack_packet
-from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS
+from src.mp2.constants import MEMBER_ID, TIMESTAMP, JOINED, FAILED, CURRENT_MEMBERS, TTL, PING_TIME, DATA, SUSPICION_ENABLED, PRINT_SUSPICION, LEAVING, SUSPICION, NOT_SUS, INCARNATION
 from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DETECTOR_PORT, INTRODUCER_ID, INTRODUCER_PORT
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
 
+
 machine_id = -1
+incarnation = 0
 
 member_list = []
 suspicion_list = {}
@@ -28,9 +30,11 @@ config_lock = threading.Lock()
 
 member_condition_variable = threading.Condition()
 
+
+
 configuration = {
     SUSPICION_ENABLED: True, 
-    PRINT_SUSPICION: False, 
+    PRINT_SUSPICION: True, 
     LEAVING: False
 }
 
@@ -116,10 +120,11 @@ def get_random_member():
     Returns a Member Class of a randomly connected Member
     """
 
-    return random.choice(member_list)
+    with member_list_lock:
+        if (len(member_list) == 0): return None
+        return random.choice(member_list)
 
-def add_member_list(id):
-    
+def add_member_list(id, incarnation = 0):
     """
     Tried adding a member with given id to the member list
     If it already exists then nothing happens and False is returned
@@ -135,7 +140,7 @@ def add_member_list(id):
                 return False
 
         # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time()})
+        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
         update_member_list_file()
         member_condition_variable.notify()
     return True
@@ -182,31 +187,63 @@ def remove_sus(id):
     with suspicion_list_lock:
         if id in suspicion_list:
             del suspicion_list[id]
-            add_event(id, NOT_SUS)
+
+def update_incarnation_number(id, number):
+    global member_list
+    with member_list_lock:
+        for i, member in enumerate(member_list):
+            if member[MEMBER_ID] == id:
+                if (member[INCARNATION] < number):
+                    member_list[i][INCARNATION] = number
+                    add_event(id, f"OK{number}")
+                    remove_sus(id)
+
+
+
+def get_incarnation(id):
+    global member_list
+    with member_list_lock:
+        for member in member_list:
+            return member[INCARNATION]
 
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
     """
     id = data[MEMBER_ID]
-    remove_sus(id)
     events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
             change_sus_status(state)
             continue
-        if (state == NOT_SUS):
-            remove_sus(id)
+        if (state[:2] == "OK"):
+            if (int(id) == machine_id): continue
+            print(f"ok-{id}: {state[2:]}")
+            update_incarnation_number(int(id), int(state[2:]))
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
+        if (state[:len(SUSPICION)] == SUSPICION):
+            handle_suspect(int(id), int(state[len(SUSPICION):]))
         
     log(f"Received ACK: {events}")
 
-def handle_suspect(id):
+def handle_suspect(id, incarnation_number):
+    ## If Self
+    global incarnation
+
+    if (id == machine_id):
+        incarnation += 1
+        add_event(machine_id, f"OK{incarnation}")
+        return
+    current_incarnation_number = get_incarnation(id)
+    # If OK comes before SUSPICION
+    if (current_incarnation_number is None): assert(False)
+    suspecting = False
     with suspicion_list_lock:
         if (id not in suspicion_list):
+<<<<<<< HEAD
             add_event(id, SUSPICION)
             suspicion_list[id] = (time(),)
     if (get_config(PRINT_SUSPICION)):
@@ -215,6 +252,19 @@ def handle_suspect(id):
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
         handle_suspect(id)
+=======
+            if (incarnation_number >= current_incarnation_number):
+                suspecting = True
+                add_event(id, f"{SUSPICION}{incarnation_number}")
+                suspicion_list[id] = (time(), incarnation_number)
+                update_incarnation_number(id, incarnation_number)
+    if (get_config(PRINT_SUSPICION) and suspecting):
+        print(f"Suspecting {id} with incarnation: {incarnation_number}")
+
+def handle_timeout(id):
+    if (get_config(SUSPICION_ENABLED)):
+        handle_suspect(id, get_incarnation(id))
+>>>>>>> abcf32bb21f312f62af9f41d181ee960267b78ff
         log("SUS")
 
         # TODO: Suspicion
@@ -248,8 +298,12 @@ def ping():
         poll_configuration()
 
         reap_suspect_list()
+        random_member = get_random_member()
 
-        member_id = get_random_member()[MEMBER_ID]
+        if (random_member is None):
+            continue
+
+        member_id = random_member[MEMBER_ID]
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -302,7 +356,9 @@ def introduce_member(client_socket):
     membership_data = decode_message(membership_requested)
 
     # Creates and sends a message containing the member list
-    data = current_member_list_packet(member_list)
+    with member_list_lock:
+        member_list_copy = member_list.copy()
+    data = current_member_list_packet(member_list_copy)
     send_data(client_socket, data)
 
     # Adds member to member_list and creates an event

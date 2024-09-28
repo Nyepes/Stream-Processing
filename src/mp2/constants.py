@@ -1,5 +1,5 @@
 
-PING_TIME = 1
+PING_TIME = 0.5
 TTL = 5
 
 # Member Data
@@ -17,7 +17,7 @@ LEAVING = "leaving"
 NOT_SUS = "not_sus"
 SUSPICION = "suspicion"
 
-
+INCARNATION = "incarnation"
 ### CONFIGURATION ###
 
 SUSPICION_ENABLED = "suspicion_enabled"
