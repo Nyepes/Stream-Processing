@@ -48,9 +48,10 @@ def kill(time):
 
 
 def update_member_list_file():
-    with open("src/member_list.txt", "w") as file:
-        for member in member_list:
-            file.write(f"{member[MEMBER_ID]}\n")
+    with member_list_lock:
+        with open("src/member_list.txt", "w") as file:
+            for member in member_list:
+                file.write(f"{member[MEMBER_ID]}\n")
 
 def poll_configuration():
     
@@ -105,14 +106,12 @@ def add_event(id, event):
     """
     
     if (clean_up.get(id) == event):
-        
         clean_up.set(id, event, TTL)
-    
     else:
         
         if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
-        clean_up.set(id, event, TTL)
+        clean_up.set(id, event, 5 * TTL)
 
 def get_random_member():
     
@@ -207,13 +206,13 @@ def get_incarnation(id):
     global member_list
     with member_list_lock:
         for member in member_list:
-            return member[INCARNATION]
+            if (id == member[MEMBER_ID]):
+                return member[INCARNATION]
 
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
     """
-    id = data[MEMBER_ID]
     events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
@@ -237,37 +236,26 @@ def handle_suspect(id, incarnation_number):
     global incarnation
 
     if (id == machine_id):
-        incarnation += 1
+        if (incarnation_number == incarnation):
+            incarnation += 1
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
     # If OK comes before SUSPICION
-    if (current_incarnation_number is None): assert(False)
     suspecting = False
     with suspicion_list_lock:
         if (id not in suspicion_list):
-<<<<<<< HEAD
-            add_event(id, SUSPICION)
-            suspicion_list[id] = (time(),)
-    if (get_config(PRINT_SUSPICION)):
-        print(f"Suspecting {id}")
-
-def handle_timeout(id):
-    if (get_config(SUSPICION_ENABLED)):
-        handle_suspect(id)
-=======
             if (incarnation_number >= current_incarnation_number):
                 suspecting = True
                 add_event(id, f"{SUSPICION}{incarnation_number}")
                 suspicion_list[id] = (time(), incarnation_number)
                 update_incarnation_number(id, incarnation_number)
-    if (get_config(PRINT_SUSPICION) and suspecting):
+    if (suspecting and get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id} with incarnation: {incarnation_number}")
 
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
         handle_suspect(id, get_incarnation(id))
->>>>>>> abcf32bb21f312f62af9f41d181ee960267b78ff
         log("SUS")
 
         # TODO: Suspicion
