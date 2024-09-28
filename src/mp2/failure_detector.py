@@ -47,8 +47,8 @@ def kill(time):
     os.kill(os.getpid(), signal.SIGTERM)
 
 
+### Suppose Lock is on!
 def update_member_list_file():
-    with member_list_lock:
         with open("src/member_list.txt", "w") as file:
             for member in member_list:
                 file.write(f"{member[MEMBER_ID]}\n")
@@ -100,7 +100,7 @@ def add_event(id, event):
     if (clean_up.get(id) == event):
         clean_up.set(id, event, 5 * TTL)
     else:
-        if (events.get(id) == JOINED): return
+        # if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
         clean_up.set(id, event, 5 * TTL)
 
@@ -133,8 +133,7 @@ def add_member_list(id, incarnation = 0):
             # Adds member and records current timestamp
             member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
             member_condition_variable.notify()
-
-    update_member_list_file()
+        update_member_list_file()
     return True
 
 def remove_member_list(id):
@@ -231,6 +230,9 @@ def handle_suspect(id, incarnation_number):
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
+    
+    # Does not know member
+    if (current_incarnation_number == None): return None
     # If OK comes before SUSPICION
     suspecting = False
     with suspicion_list_lock:
