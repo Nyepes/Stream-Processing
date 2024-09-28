@@ -171,7 +171,6 @@ def remove_sus(id):
     with suspicion_list_lock:
         if id in suspicion_list:
             del suspicion_list[id]
-            add_event(id, NOT_SUS)
 
 def update_incarnation_number(id, number):
     with member_list_lock:
@@ -179,8 +178,9 @@ def update_incarnation_number(id, number):
             if member[MEMBER_ID] == id:
                 if (member[INCARNATION] < number):
                     member[INCARNATION] = number
-                    add_event(id, f"{OK}{number}")
-                else:
+                    add_event(id, f"OK{number}")
+                    remove_sus(id)
+
 
 
 def get_incarnation(id):
@@ -193,7 +193,6 @@ def update_system_events(data):
     Handles and updates members after another member acknowledges or pings machine
     """
     id = data[MEMBER_ID]
-    remove_sus(id)
     events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
@@ -201,33 +200,33 @@ def update_system_events(data):
             continue
         if (state[:2] == "OK"):
             update_incarnation_number(id, int(state[2:]))
-        if (state == NOT_SUS):
-            remove_sus(id)
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
+        if (state[:len(SUSPICION)] == SUSPICION):
+            handle_suspect(id, int(state[len(suspicion):]))
         
     log(f"Received ACK: {events}")
 
-def handle_suspect(id):
+def handle_suspect(id, incarnation_number):
     ## If Self
     if (id == machine_id):
         incarnation += 1
         events.add_event(machine_id, f"{OK}{incarnation}")
         return
-
+    current_incarnation_number = get_incarnation(id)
     with suspicion_list_lock:
         if (id not in suspicion_list):
-            suspect_incarnation_number = get_incarnation(id)
-            add_event(id, f"{SUSPICION}{suspect_incarnation_number}")
-            suspicion_list[id] = (time(), suspect_incarnation_number)
+            if (incarnation_number >= current_incarnation_number):
+                add_event(id, f"{SUSPICION}{incarnation_number}")
+                suspicion_list[id] = (time(), incarnation_number)
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
 
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
-        handle_suspect(id)
+        handle_suspect(id, get_incarnation(id))
         log("SUS")
 
         # TODO: Suspicion
