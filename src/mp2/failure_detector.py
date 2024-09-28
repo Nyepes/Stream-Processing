@@ -205,7 +205,7 @@ def update_system_events(data):
         if (state == JOINED):
             handle_joined(int(id))
         if (state[:len(SUSPICION)] == SUSPICION):
-            handle_suspect(id, int(state[len(suspicion):]))
+            handle_suspect(id, int(state[len(SUSPICION):]))
         
     log(f"Received ACK: {events}")
 
@@ -216,13 +216,16 @@ def handle_suspect(id, incarnation_number):
         events.add_event(machine_id, f"{OK}{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
+    if (current_incarnation_number is None): return
+    suspecting = False
     with suspicion_list_lock:
         if (id not in suspicion_list):
             if (incarnation_number >= current_incarnation_number):
+                suspecting = True
                 add_event(id, f"{SUSPICION}{incarnation_number}")
                 suspicion_list[id] = (time(), incarnation_number)
-    if (get_config(PRINT_SUSPICION)):
-        print(f"Suspecting {id}")
+    if (get_config(PRINT_SUSPICION) and suspecting):
+        print(f"Suspecting {id} with incarnation: {incarnation_number}")
 
 def handle_timeout(id):
     if (get_config(SUSPICION_ENABLED)):
