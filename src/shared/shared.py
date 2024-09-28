@@ -4,7 +4,7 @@ import json
 import random
 
 
-PACKAGE_DROP_RATE = 0.001
+PACKAGE_DROP_RATE = 0.05
 
 """
 
