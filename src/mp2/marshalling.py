@@ -4,15 +4,15 @@ from functools import wraps
 from time import time
 from dataclasses import asdict
 
-from src.mp2.constants import MEMBER_ID, CURRENT_MEMBERS, DATA, INCARNATION
+from src.mp2.constants import MEMBER_ID, CURRENT_MEMBERS, DATA, INCARNATION, SUSPICION_ENABLED
 
 
 
-def current_member_list_packet(member_list):
+def current_member_list_packet(member_list, suspicion_enabled):
     member_data = []
     for member in member_list:
         member_data.append({MEMBER_ID: member[MEMBER_ID], INCARNATION: member[INCARNATION]})
-    packet = {CURRENT_MEMBERS: member_data}
+    packet = {CURRENT_MEMBERS: member_data, SUSPICION_ENABLED, suspicion_enabled}
     return json.dumps(packet)
 
 def request_join_packet(id):
