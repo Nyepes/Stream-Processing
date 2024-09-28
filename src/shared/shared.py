@@ -4,7 +4,7 @@ import json
 import random
 
 
-PACKAGE_DROP_RATE = 0.05
+PACKAGE_DROP_RATE = 0.001
 
 """
 
@@ -92,10 +92,12 @@ def udp_send_data(socket: socket, data, address):
     """
     if (random.random() < PACKAGE_DROP_RATE):
         return
+
     if (len(data) >= 2048):
         print("attempted to send too much data")
         return -1
     message = data.encode("utf-8")
+    # print(len(message))
     socket.sendto(message, address)
     return
 

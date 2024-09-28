@@ -14,6 +14,7 @@ from src.shared.constants import HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT, FAILURE_DE
 from src.shared.logging import log
 from src.mp2.time_based_dict import TTLDict
 
+
 machine_id = -1
 incarnation = 0
 
@@ -33,7 +34,7 @@ member_condition_variable = threading.Condition()
 
 configuration = {
     SUSPICION_ENABLED: True, 
-    PRINT_SUSPICION: False, 
+    PRINT_SUSPICION: True, 
     LEAVING: False
 }
 
@@ -106,7 +107,8 @@ def get_random_member():
     """
     Returns a Member Class of a randomly connected Member
     """
-    return random.choice(member_list)
+    with member_list_lock:
+        return random.choice(member_list)
 
 def add_member_list(id, incarnation = 0):
     """
@@ -173,17 +175,19 @@ def remove_sus(id):
             del suspicion_list[id]
 
 def update_incarnation_number(id, number):
+    global member_list
     with member_list_lock:
-        for member in member_list:
+        for i, member in enumerate(member_list):
             if member[MEMBER_ID] == id:
                 if (member[INCARNATION] < number):
-                    member[INCARNATION] = number
+                    member_list[i][INCARNATION] = number
                     add_event(id, f"OK{number}")
                     remove_sus(id)
 
 
 
 def get_incarnation(id):
+    global member_list
     with member_list_lock:
         for member in member_list:
             return member[INCARNATION]
@@ -199,21 +203,25 @@ def update_system_events(data):
             change_sus_status(state)
             continue
         if (state[:2] == "OK"):
-            update_incarnation_number(id, int(state[2:]))
+            if (id == machine_id): continue
+            print(f"ok-{id}: {state[2:]}")
+            update_incarnation_number(int(id), int(state[2:]))
         if (state == FAILED or state == LEAVING):
             handle_failed(int(id))
         if (state == JOINED):
             handle_joined(int(id))
         if (state[:len(SUSPICION)] == SUSPICION):
-            handle_suspect(id, int(state[len(SUSPICION):]))
+            handle_suspect(int(id), int(state[len(SUSPICION):]))
         
     log(f"Received ACK: {events}")
 
 def handle_suspect(id, incarnation_number):
     ## If Self
+    global incarnation
+
     if (id == machine_id):
         incarnation += 1
-        events.add_event(machine_id, f"{OK}{incarnation}")
+        add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
     if (current_incarnation_number is None): return

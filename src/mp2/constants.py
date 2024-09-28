@@ -1,5 +1,5 @@
 
-PING_TIME = 1
+PING_TIME = 0.5
 TTL = 5
 
 # Member Data
