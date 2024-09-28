@@ -107,7 +107,9 @@ def get_random_member():
     """
     Returns a Member Class of a randomly connected Member
     """
+
     with member_list_lock:
+        if (len(member_list) == 0): return None
         return random.choice(member_list)
 
 def add_member_list(id, incarnation = 0):
@@ -203,7 +205,7 @@ def update_system_events(data):
             change_sus_status(state)
             continue
         if (state[:2] == "OK"):
-            if (id == machine_id): continue
+            if (int(id) == machine_id): continue
             print(f"ok-{id}: {state[2:]}")
             update_incarnation_number(int(id), int(state[2:]))
         if (state == FAILED or state == LEAVING):
@@ -224,7 +226,8 @@ def handle_suspect(id, incarnation_number):
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
-    if (current_incarnation_number is None): return
+    # If OK comes before SUSPICION
+    if (current_incarnation_number is None): assert(False)
     suspecting = False
     with suspicion_list_lock:
         if (id not in suspicion_list):
@@ -232,6 +235,7 @@ def handle_suspect(id, incarnation_number):
                 suspecting = True
                 add_event(id, f"{SUSPICION}{incarnation_number}")
                 suspicion_list[id] = (time(), incarnation_number)
+                update_incarnation_number(id, incarnation_number)
     if (get_config(PRINT_SUSPICION) and suspecting):
         print(f"Suspecting {id} with incarnation: {incarnation_number}")
 
@@ -271,8 +275,12 @@ def ping():
         poll_configuration()
 
         reap_suspect_list()
+        random_member = get_random_member()
 
-        member_id = get_random_member()[MEMBER_ID]
+        if (random_member is None):
+            continue
+
+        member_id = random_member[MEMBER_ID]
 
         machine_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
