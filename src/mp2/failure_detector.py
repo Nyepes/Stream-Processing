@@ -124,7 +124,7 @@ def add_member_list(id, incarnation = 0):
                 return False
 
         # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: add_member_list})
+        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
         update_member_list_file()
         member_condition_variable.notify()
     return True
@@ -177,7 +177,16 @@ def update_incarnation_number(id, number):
     with member_list_lock:
         for member in member_list:
             if member[MEMBER_ID] == id:
-                member[INCARNATION] = number
+                if (member[INCARNATION] < number):
+                    member[INCARNATION] = number
+                    add_event(id, f"{OK}{number}")
+                else:
+
+
+def get_incarnation(id):
+    with member_list_lock:
+        for member in member_list:
+            return member[INCARNATION]
 
 def update_system_events(data):
     """
@@ -207,10 +216,12 @@ def handle_suspect(id):
         incarnation += 1
         events.add_event(machine_id, f"{OK}{incarnation}")
         return
+
     with suspicion_list_lock:
         if (id not in suspicion_list):
-            add_event(id, SUSPICION)
-            suspicion_list[id] = (time(),)
+            suspect_incarnation_number = get_incarnation(id)
+            add_event(id, f"{SUSPICION}{suspect_incarnation_number}")
+            suspicion_list[id] = (time(), suspect_incarnation_number)
     if (get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id}")
 
