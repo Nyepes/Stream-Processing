@@ -132,17 +132,20 @@ def add_member_list(id, incarnation = 0):
     """
 
     global member_list
-    if (machine_id == id): return False
-    with member_condition_variable:
-        for member in member_list:
-            if (member[MEMBER_ID] == id): 
-                #Member already in list or selfs
-                return False
 
-        # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
-        update_member_list_file()
-        member_condition_variable.notify()
+    if (machine_id == id): return False
+    with member_list_lock:
+        with member_condition_variable:
+            for member in member_list:
+                if (member[MEMBER_ID] == id): 
+                    #Member already in list or selfs
+                    return False
+
+            # Adds member and records current timestamp
+            member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
+            member_condition_variable.notify()
+
+    update_member_list_file()
     return True
 
 def remove_member_list(id):
@@ -301,6 +304,7 @@ def ping():
         random_member = get_random_member()
 
         if (random_member is None):
+            print("no members")
             continue
 
         member_id = random_member[MEMBER_ID]
