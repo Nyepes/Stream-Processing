@@ -1,6 +1,0 @@
-# Cache
-__pycache__
-
-# Log files
-machine.*.log
-test.log
