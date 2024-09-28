@@ -28,7 +28,7 @@ suspicion_list_lock = threading.Lock()
 member_list_lock = threading.Lock()
 config_lock = threading.Lock()
 
-member_condition_variable = threading.Condition(member_list_lock)
+member_condition_variable = threading.Condition()
 
 
 
@@ -239,9 +239,6 @@ def handle_suspect(id, incarnation_number):
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
-    
-    # Does not know member
-    if (current_incarnation_number == None): return None
     # If OK comes before SUSPICION
     suspecting = False
     with suspicion_list_lock:
@@ -283,6 +280,7 @@ def ping():
         with member_condition_variable:
             while (len(member_list) == 0):
                 member_condition_variable.wait()
+                poll_configuration()
 
         
         # Get Updates on configuration
@@ -350,7 +348,7 @@ def introduce_member(client_socket):
     # Creates and sends a message containing the member list
     with member_list_lock:
         member_list_copy = member_list.copy()
-    data = current_member_list_packet(member_list_copy, config[SUSPICION_ENABLED])
+    data = current_member_list_packet(member_list_copy)
     send_data(client_socket, data)
 
     # Adds member to member_list and creates an event
@@ -401,8 +399,7 @@ def join():
             # Adds each member to its member list
             for member in decoded[CURRENT_MEMBERS]:
                 add_member_list(member[MEMBER_ID])
-            
-            set_config(SUSPICION_ENABLED, decode_message[SUSPICION_ENABLED])
+
             # Adds introducer as well
             add_member_list(INTRODUCER_ID)
         return result
