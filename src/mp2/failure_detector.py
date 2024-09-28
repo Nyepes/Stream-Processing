@@ -47,10 +47,11 @@ def kill(time):
     os.kill(os.getpid(), signal.SIGTERM)
 
 
+### Suppose Lock is on!
 def update_member_list_file():
-    with open("src/member_list.txt", "w") as file:
-        for member in member_list:
-            file.write(f"{member[MEMBER_ID]}\n")
+        with open("src/member_list.txt", "w") as file:
+            for member in member_list:
+                file.write(f"{member[MEMBER_ID]}\n")
 
 def poll_configuration():
     global configuration
@@ -97,11 +98,11 @@ def add_event(id, event):
     We track what has been received through another TTLDict called clean_up set
     """
     if (clean_up.get(id) == event):
-        clean_up.set(id, event, TTL)
+        clean_up.set(id, event, 5 * TTL)
     else:
-        if (events.get(id) == JOINED): return
+        # if (events.get(id) == JOINED): return
         events.set(id, event, TTL)
-        clean_up.set(id, event, TTL)
+        clean_up.set(id, event, 5 * TTL)
 
 def get_random_member():
     """
@@ -120,17 +121,19 @@ def add_member_list(id, incarnation = 0):
     """
 
     global member_list
-    if (machine_id == id): return False
-    with member_condition_variable:
-        for member in member_list:
-            if (member[MEMBER_ID] == id): 
-                #Member already in list or selfs
-                return False
 
-        # Adds member and records current timestamp
-        member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
+    if (machine_id == id): return False
+    with member_list_lock:
+        with member_condition_variable:
+            for member in member_list:
+                if (member[MEMBER_ID] == id): 
+                    #Member already in list or selfs
+                    return False
+
+            # Adds member and records current timestamp
+            member_list.append({MEMBER_ID: id, TIMESTAMP: time(), INCARNATION: incarnation})
+            member_condition_variable.notify()
         update_member_list_file()
-        member_condition_variable.notify()
     return True
 
 def remove_member_list(id):
@@ -192,13 +195,13 @@ def get_incarnation(id):
     global member_list
     with member_list_lock:
         for member in member_list:
-            return member[INCARNATION]
+            if (id == member[MEMBER_ID]):
+                return member[INCARNATION]
 
 def update_system_events(data):
     """
     Handles and updates members after another member acknowledges or pings machine
     """
-    id = data[MEMBER_ID]
     events = data[DATA] 
     for id, state in events.items():
         if (id == SUSPICION_ENABLED):
@@ -222,12 +225,12 @@ def handle_suspect(id, incarnation_number):
     global incarnation
 
     if (id == machine_id):
-        incarnation += 1
+        if (incarnation_number == incarnation):
+            incarnation += 1
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
     # If OK comes before SUSPICION
-    if (current_incarnation_number is None): assert(False)
     suspecting = False
     with suspicion_list_lock:
         if (id not in suspicion_list):
@@ -236,7 +239,7 @@ def handle_suspect(id, incarnation_number):
                 add_event(id, f"{SUSPICION}{incarnation_number}")
                 suspicion_list[id] = (time(), incarnation_number)
                 update_incarnation_number(id, incarnation_number)
-    if (get_config(PRINT_SUSPICION) and suspecting):
+    if (suspecting and get_config(PRINT_SUSPICION)):
         print(f"Suspecting {id} with incarnation: {incarnation_number}")
 
 def handle_timeout(id):
@@ -278,6 +281,7 @@ def ping():
         random_member = get_random_member()
 
         if (random_member is None):
+            print("no members")
             continue
 
         member_id = random_member[MEMBER_ID]

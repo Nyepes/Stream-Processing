@@ -5,5 +5,5 @@ __pycache__
 # Log files
 machine.*.log
 test.log
-member_list.txt
+**/*member_list.txt
 __init__.py
