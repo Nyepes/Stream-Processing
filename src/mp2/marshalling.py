@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 from src.mp2.constants import MEMBER_ID, CURRENT_MEMBERS, DATA, INCARNATION, SUSPICION_ENABLED
 
-def current_member_list_packet(member_list: list, sus_enabled=False: bool) -> str:
+def current_member_list_packet(member_list: list, sus_enabled:bool=False) -> str:
     """
     Creates a JSON packet containing the current members and their incarnation numbers,
     along with whether suspicion is enabled.
