@@ -1,6 +1,11 @@
 import json
-from src.shared.constants import HOSTS
+
 from src.mp2.constants import SUSPICION_ENABLED
+from src.shared.constants import HOSTS
+
+"""
+Script to run when calling ./run.sh toggle_sus
+"""
 
 with open("src/mp2/metadata.json", "r") as member_list_file:
     dict_data = json.load(member_list_file)
