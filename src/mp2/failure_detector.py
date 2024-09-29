@@ -62,6 +62,8 @@ def poll_configuration():
         new_configuration = json.load(metadata)
     if (get_config(SUSPICION_ENABLED) != new_configuration[SUSPICION_ENABLED]):
         add_event(SUSPICION_ENABLED, new_configuration[SUSPICION_ENABLED])
+        with suspicion_list_lock:
+            suspicion_list = {}
     if new_configuration[LEAVING]:
         add_event(machine_id, LEAVING)
         # Set up timer to kill after all nodes received information
@@ -222,6 +224,7 @@ def update_system_events(data):
 
 def handle_suspect(id, incarnation_number):
     ## If Self
+    if (get_config(SUSPICION_ENABLED) is False): return
     global incarnation
 
     if (id == machine_id):
@@ -230,6 +233,7 @@ def handle_suspect(id, incarnation_number):
         add_event(machine_id, f"OK{incarnation}")
         return
     current_incarnation_number = get_incarnation(id)
+    if (current_incarnation_number is None): return
     # If OK comes before SUSPICION
     suspecting = False
     with suspicion_list_lock:
@@ -276,8 +280,8 @@ def ping():
         
         # Get Updates on configuration
         poll_configuration()
-
-        reap_suspect_list()
+        if (get_config(SUSPICION_ENABLED)):
+            reap_suspect_list()
         random_member = get_random_member()
 
         if (random_member is None):
@@ -318,7 +322,7 @@ def failure_detector():
 
         log(f"Received message: {ping}")
         update_system_events(ping)
-
+        print("updated!")
         ack = ack_packet(machine_id, events.get_all())
         udp_send_data(failure_detector, ack, address)
 
@@ -339,14 +343,13 @@ def introduce_member(client_socket):
     # Creates and sends a message containing the member list
     with member_list_lock:
         member_list_copy = member_list.copy()
-    data = current_member_list_packet(member_list_copy)
+    data = current_member_list_packet(member_list_copy, get_config(SUSPICION_ENABLED))
     send_data(client_socket, data)
 
     # Adds member to member_list and creates an event
     member = membership_data[MEMBER_ID]
-    add_event(member, JOINED)
-    sleep(TTL)
     add_member_list(member)
+    add_event(member, JOINED)
 
     log(f"{member} {JOINED}")
 
@@ -390,8 +393,9 @@ def join():
             # Adds each member to its member list
             for member in decoded[CURRENT_MEMBERS]:
                 add_member_list(member[MEMBER_ID])
-
+            configuration[SUSPICION_ENABLED] = decoded[SUSPICION_ENABLED]
             # Adds introducer as well
+
             add_member_list(INTRODUCER_ID)
         return result
     
@@ -406,8 +410,6 @@ if __name__ == "__main__":
         introducer = threading.Thread(target=start_introducer_server)
         introducer.daemon = True
         introducer.start()
-    else:
-        join()
     set_config(LEAVING, False)
     poll_configuration()
     log(JOINED, machine_id)
@@ -415,10 +417,17 @@ if __name__ == "__main__":
     failure_listener = threading.Thread(target = failure_detector)
     failure_listener.daemon = True
     failure_listener.start()
-
+    
     pinger = threading.Thread(target = ping)
     pinger.daemon = True
     pinger.start()
+    # Give time for listener to start
+    sleep(3)
+    if (machine_id != INTRODUCER_ID):
+        join()
+
+
+
 
     
 
