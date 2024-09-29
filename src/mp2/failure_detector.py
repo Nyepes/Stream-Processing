@@ -65,7 +65,7 @@ def update_member_list_file() -> None:
     """
 
 
-    with open("src/member_list.txt", "w") as file:ç
+    with open("src/member_list.txt", "w") as file:
         
         #  Although we are reading from member_list all function calls of 
         # update_member_list_file are called within a lock (i.e. it is thread safe)
@@ -189,7 +189,7 @@ def get_random_member():
         
         return random.choice(member_list)
 
-def add_member_list(id: int, incarnation=0: int) -> bool:
+def add_member_list(id: int, incarnation:int=0) -> bool:
     
     """
     
