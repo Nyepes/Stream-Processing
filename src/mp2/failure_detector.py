@@ -660,6 +660,6 @@ if __name__ == "__main__":
     
     # Give time for listener to start
     
-    sleep(3)
+    sleep(4)
     if (machine_id != INTRODUCER_ID):
         join()
