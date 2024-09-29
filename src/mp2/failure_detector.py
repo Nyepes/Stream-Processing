@@ -502,7 +502,6 @@ def ping():
         random_member = get_random_member()
 
         if (random_member is None):
-            print("no members")
             continue
 
         member_id = random_member[MEMBER_ID]
@@ -545,7 +544,6 @@ def failure_detector():
 
         log(f"Received message: {ping}")
         update_system_events(ping)
-        print("updated!")
         ack = ack_packet(machine_id, events.get_all())
         udp_send_data(failure_detector, ack, address)
 
