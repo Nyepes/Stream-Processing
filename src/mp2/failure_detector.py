@@ -344,7 +344,7 @@ def introduce_member(client_socket):
 
     # Adds member to member_list and creates an event
     member = membership_data[MEMBER_ID]
-    sleep(PING_TIME)
+    sleep(5)
     add_member_list(member)
     add_event(member, JOINED)
 
