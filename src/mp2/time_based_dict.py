@@ -1,15 +1,15 @@
-"""
-This is a class that wil contain a dictionary 
-however after certain amount of time, data will be removed.
-This is great to keep track of who joins and who is suspicious and have failed
-So that it can be easily sent to other processes
-This is thread safe
-"""
-
-import time
 import threading
+import time
+
+"""
+A thread-safe dictionary class (`TTLDict`) where entries automatically 
+expire after a specified time-to-live (TTL). This is useful for tracking members 
+who join, become suspicious, or fail, and ensures that expired data is removed 
+in the background, making it ready to send to other processes.
+"""
 
 class TTLDict:
+    
     def __init__(self):
         self.store = {}
         self.lock = threading.Lock()
@@ -39,7 +39,6 @@ class TTLDict:
             val = self.store.get(key)[0]
         self.lock.release()
         return val
-
 
     def get_all(self):
         data = {}
