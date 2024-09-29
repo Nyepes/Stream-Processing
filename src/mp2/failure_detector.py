@@ -344,9 +344,9 @@ def introduce_member(client_socket):
 
     # Adds member to member_list and creates an event
     member = membership_data[MEMBER_ID]
-    sleep(5)
-    add_member_list(member)
     add_event(member, JOINED)
+    sleep(TTL)
+    add_member_list(member)
 
     log(f"{member} {JOINED}")
 
