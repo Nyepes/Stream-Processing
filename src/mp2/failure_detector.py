@@ -23,7 +23,7 @@ member_list = []
 suspicion_list = {}
 
 configuration = {
-    SUSPICION_ENABLED: True, 
+    SUSPICION_ENABLED: False, 
     PRINT_SUSPICION: True, 
     LEAVING: False
 }

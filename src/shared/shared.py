@@ -105,3 +105,13 @@ def udp_receive_data(socket: socket):
     data, address = socket.recvfrom(2048)
     data.decode("utf-8")
     return json.loads(data), address
+
+
+def get_machines():
+    machines = []
+    with open("src/member_list.txt", "r") as member_list_file:
+        for line in member_list_file:
+            machine_id = int(line.strip())
+            machines.append(machine_id)
+    return machines
+
