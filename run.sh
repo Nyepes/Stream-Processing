@@ -15,7 +15,8 @@ failure_detector() {
 
 start() {
   dgrep_server "$@" & 2> /dev/null
-  failure_detector "$@"
+  failure_detector "$@" &
+  python src/mp3/file_system.py "$@"
 }
 
 members() {
@@ -77,6 +78,9 @@ elif [ "$1" == "toggle_print_sus" ]; then
   toggle_print_sus "$@"
 elif [ "$1" == "leave" ]; then
   leave "$@"
+elif [ "$1" == "get" ]; then
+  shift 
+  python src/mp3/get_file.py "$@"
 else
   echo "$1"
   echo "Command not found"

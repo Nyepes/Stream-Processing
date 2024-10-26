@@ -1,4 +1,7 @@
+import sys
+import os
 from src.shared.constants import HOSTS
+from src.mp3.shared import generate_sha1, request_file
 """
 Script to run when calling ./run.sh list_mem
 """
@@ -15,21 +18,14 @@ def get_machines():
 
 if __name__ == "__main__":
     
-    file_name = int(sys.argv[1])
-    output_file = int(sys.argv[2])
+    file_name = sys.argv[1]
+    output_file = sys.argv[2]
     machines = get_machines()
 
-    value = generate_sha1(file_name)
+    value = int(generate_sha1(file_name), 16)
 
     machine_with_file = value % 10 + 1
 
-    id = os.environ["ID"]
-
-    if (id < machine_with_file + REPLICATION_FACTOR and id >= machine_with_file):
-        # Link ? Idk
-        # TODO: dup2() for efficiency
-    
-    else:
-        request_file(machine_with_file + id % REPLICATION_FACTOR, file_name, output_file)
+    request_file(1, file_name, output_file)
 
 
