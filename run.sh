@@ -81,6 +81,9 @@ elif [ "$1" == "leave" ]; then
 elif [ "$1" == "get" ]; then
   shift 
   python src/mp3/get_file.py "$@"
+elif [ "$1" == "create" ]; then
+  shift 
+  python src/mp3/create_file.py "$@"
 else
   echo "$1"
   echo "Command not found"

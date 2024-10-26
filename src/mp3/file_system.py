@@ -1,6 +1,7 @@
 import threading
 import socket
 import sys
+import os
 
 from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS
 from src.mp3.shared import read_file_to_socket
@@ -16,6 +17,13 @@ def handle_append(file_name, socket):
     return
 
 def handle_create(file_name, socket):
+    path = f"src/mp3/fs/{file_name}"
+    if os.path.exists(path):
+        socket.sendall("ERROR".encode())
+    else:
+        with open(path, "w") as f:
+            f.write("")
+        socket.sendall("OK".encode())
     return
 
     

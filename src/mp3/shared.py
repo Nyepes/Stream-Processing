@@ -29,7 +29,6 @@ def request_file(machine_id, file_name, output_file):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[machine_id - 1], FILE_SYSTEM_PORT))
-            # send_data(server, "GET " + file_name)
             length = len(file_name).to_bytes(1, byteorder='little')
             server.sendall(b"G" + length + file_name.encode())
             with open(output_file, "wb") as output:
