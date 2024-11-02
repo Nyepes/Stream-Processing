@@ -84,6 +84,9 @@ elif [ "$1" == "get" ]; then
 elif [ "$1" == "create" ]; then
   shift 
   python src/mp3/create_file.py "$@"
+elif [ "$1" == "append" ]; then
+  shift 
+  python src/mp3/append.py "$@"
 else
   echo "$1"
   echo "Command not found"

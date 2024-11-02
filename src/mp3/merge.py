@@ -2,18 +2,19 @@ import socket
 import sys
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
-from src.shared.shared import get_machines
-from src.mp3.shared import generate_sha1
+from src.shared.shared import get_machines, get_my_id
+from src.mp3.shared import generate_sha1, send_file
 
 BUFFER_SIZE = 1024
 
-def request_create_file(machine_to_request, file_name):
+def request_append_file(receiver_id, server_file_name):
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
-            server.connect((HOSTS[machine_to_request - 1], FILE_SYSTEM_PORT))
-            length = len(file_name).to_bytes(1, byteorder='little')
-            server.sendall(b"C" + length + file_name.encode())
+            server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
+            length = len(server_file_name).to_bytes(1, byteorder='little')
+           
+            server.sendall(b"P" + length + server_file_name.encode())
             data = server.recv(BUFFER_SIZE).decode("utf-8")
             if (data == b''): return
             if (data == "ERROR"):
@@ -24,12 +25,15 @@ def request_create_file(machine_to_request, file_name):
         return -2
     return 1
 
-    
 
 if __name__ == "__main__":
-    my_id = int(socket.gethostname()[13:15])
+    
+
+    my_id = get_my_id() % 10
+
     file_name = sys.argv[1]
     machines = get_machines()
+
     value = generate_sha1(file_name)
     machine_with_file = 1 # value % 10 + 1
 
@@ -42,10 +46,8 @@ if __name__ == "__main__":
     #         print("File Created")
     # else:
     # TODO: 1 -> machine_with_file + id % REPLICATION_FACTOR
-    res = request_create_file(1 , file_name)
+    res = request_merge_file(1, file_name)
     if (res < 0):
-         print("Failed Creating File")
+         print("Merge Failed")
     else:
-        print("File Created")
-
-
+        print("Merges :>")

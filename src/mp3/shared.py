@@ -41,14 +41,14 @@ def request_file(machine_id, file_name, output_file):
     except (OSError):
         return -2
 
-def send_file(receiver_socket):
+def send_file(receiver_socket, file_name):
     try:
         with open(file_name, 'rb') as file:
             while True:
                 chunk = file.read(BUFFER_SIZE)        
                 if not chunk:
                     break 
-                s.sendall(chunk)
+                receiver_socket.sendall(chunk)
                 print(f"File {file_name} sent successfully.")
     except FileNotFoundError as e:
         print(f"File {file_name} not found.")
@@ -58,5 +58,6 @@ def send_file(receiver_socket):
         print(f"OS error: {e}")
 
 
-
+def id_from_ip(ip):
+    return int(ip[13:15])
 

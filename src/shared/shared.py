@@ -1,5 +1,6 @@
 from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
+import socket
 import json
 import random
 
@@ -115,3 +116,7 @@ def get_machines():
             machines.append(machine_id)
     return machines
 
+
+def get_my_id():
+    my_id = int(socket.gethostname()[13:15])
+    return my_id
