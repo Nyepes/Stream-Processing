@@ -109,7 +109,7 @@ def merge_file(file_name):
     buffer = [""] * (REPLICATION_FACTOR - 1)
     sockets = []
     for i in range(REPLICATION_FACTOR):
-        replica_id = i + 1 # TODO: (file_id + i) % 10 + 1
+        replica_id = (file_id + i) % 10 + 1
         if (machine_id == replica_id): 
             continue
         sockets.append(request_merge(replica_id, file_name))
