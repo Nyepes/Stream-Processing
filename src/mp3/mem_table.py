@@ -6,8 +6,6 @@ class MemTable:
         self.data = defaultdict(list)
     def add(self, filename, content):
         self.data[filename].append(content)
-        if (len(self.data[filename]) < MAX): 
-            return 0
         print(self.data[filename])
         return 1
     def get(self, file_name):

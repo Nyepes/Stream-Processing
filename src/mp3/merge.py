@@ -7,7 +7,7 @@ from src.mp3.shared import generate_sha1, send_file
 
 BUFFER_SIZE = 1024
 
-def request_append_file(receiver_id, server_file_name):
+def request_merge_file(receiver_id, server_file_name):
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)

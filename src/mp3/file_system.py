@@ -6,6 +6,7 @@ import os
 from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS
 from src.shared.DataStructures import Dict
 from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip
+from src.mp3.constants import REPLICATION_FACTOR
 from src.mp3.mem_table import MemTable
 
 memtable = None
@@ -37,10 +38,13 @@ def handle_merge(file_name, socket, ip_address):
 
 def handle_append(file_name, socket): 
     while (1):
+        print("loopy")
         data = socket.recv(1024 * 1024)
         if (data == b''): return
-        should_merge = memtable.add(file_name, data)
+        memtable.add(file_name, data)
+    print("DOne")
     socket.sendall("OK".encode())
+    socket.close()
 
 def handle_create(file_name, socket):
     path = f"src/mp3/fs/{file_name}"
@@ -99,7 +103,7 @@ def merge_file(file_name):
     sockets = []
     for i in range(REPLICATION_FACTOR):
         replica_id = (file_id + i) % 10 + 1
-        if (my_id == replica_id): 
+        if (machine_id == replica_id): 
             continue
         sockets.append(request_merge(replica_id))
     

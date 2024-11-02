@@ -14,9 +14,9 @@ def request_append_file(sender_id, receiver_id, server_file_name, local_file_nam
             server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
             length = len(server_file_name).to_bytes(1, byteorder='little')
             sender = sender_id.to_bytes(1, byteorder='little')
-            
             server.sendall(b"A" + length + server_file_name.encode() + sender)
             send_file(server, local_file_name)
+            server.shutdown(socket.SHUT_WR)
             data = server.recv(BUFFER_SIZE).decode("utf-8")
             if (data == b''): return
             if (data == "ERROR"):

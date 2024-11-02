@@ -43,6 +43,10 @@ leave() {
   python "src/mp2/utils/leave.py"
 }
 
+merge() {
+   python "src/mp3/merge.py"
+}
+
 build() {
     export PYTHONPATH="$PYTHONPATH:/src"
     python -m ensurepip --default-pip
@@ -87,6 +91,9 @@ elif [ "$1" == "create" ]; then
 elif [ "$1" == "append" ]; then
   shift 
   python src/mp3/append.py "$@"
+elif [ "$1" == "merge" ]; then
+  shift 
+  python src/mp3/merge.py "$@"
 else
   echo "$1"
   echo "Command not found"

@@ -8,7 +8,7 @@ def generate_sha1(input_string):
     """Generate a SHA-1 hash of the input string."""
     sha1_hash = hashlib.sha1()
     sha1_hash.update(input_string.encode('utf-8'))
-    return sha1_hash.hexdigest()
+    return int(sha1_hash.hexdigest(), 16)
 
 
 def read_file_to_socket(file_name, sock = None):
@@ -40,6 +40,8 @@ def request_file(machine_id, file_name, output_file):
         return -1
     except (OSError):
         return -2
+
+
 
 def send_file(receiver_socket, file_name):
     try:
