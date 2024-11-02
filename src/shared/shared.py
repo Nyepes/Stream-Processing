@@ -1,10 +1,11 @@
 from src.shared.constants import DATA_LENGTH_BYTES
 from socket import socket
+import socket
 import json
 import random
 
 
-PACKAGE_DROP_RATE = 0.05
+PACKAGE_DROP_RATE = 0
 
 """
 
@@ -105,3 +106,17 @@ def udp_receive_data(socket: socket):
     data, address = socket.recvfrom(2048)
     data.decode("utf-8")
     return json.loads(data), address
+
+
+def get_machines():
+    machines = []
+    with open("src/member_list.txt", "r") as member_list_file:
+        for line in member_list_file:
+            machine_id = int(line.strip())
+            machines.append(machine_id)
+    return machines
+
+
+def get_my_id():
+    my_id = int(socket.gethostname()[13:15])
+    return my_id

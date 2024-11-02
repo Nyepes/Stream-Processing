@@ -25,6 +25,8 @@ RECEIVE_TIMEOUT = 5  # Timeout to determine a server has crashed (i.e. process h
 
 INTRODUCER_PORT = 12346
 FAILURE_DETECTOR_PORT = 12347
+FILE_SYSTEM_PORT = 12348
+
 INTRODUCER_ID = 1
 
 ID = 3
