@@ -23,7 +23,7 @@ member_list = []
 suspicion_list = {}
 
 configuration = {
-    SUSPICION_ENABLED: True, 
+    SUSPICION_ENABLED: False, 
     PRINT_SUSPICION: True, 
     LEAVING: False
 }
@@ -660,6 +660,6 @@ if __name__ == "__main__":
     
     # Give time for listener to start
     
-    sleep(3)
+    sleep(4)
     if (machine_id != INTRODUCER_ID):
         join()

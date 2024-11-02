@@ -18,15 +18,16 @@ Where machineid is a number 01 to 10 inclusive.
 git clone https://gitlab.engr.illinois.edu/nyepes2/g06.git
 ```
 3. Build and add needed dependencies (on each machine)
-./run.sh build
 
+```bash
+./run.sh build
+```
 
 4. Start server (on each machine)
 
 ```bash
-./run.sh dgrep_server <machineid> <flags>
+./run.sh start <id>
 ```
-`-t` adding this flag will create a server in test mode so that it will query the log file `test.log` (see Testing Section)
 
 5. Start client (on any single machine)
 
@@ -102,3 +103,30 @@ python3 server.py <machineide> -t
 python3 tests/test.py
 ```
 
+4. Other commands
+Get Member Id
+```bash
+./run.sh list_self
+```
+
+Get all current members
+```bash
+./run.sh list_mem
+```
+
+Toggle Suspicion on/off
+```bash
+./run.sh toggle_sus
+```
+Print if Suspicion on/off
+```bash
+./run.sh sus_status
+```
+Toggle Suspicion print on/off
+```bash
+./run.sh toggle_print_sus
+```
+Toggle Suspicion leave
+```bash
+./run.sh leave
+```
