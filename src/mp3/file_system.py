@@ -3,7 +3,7 @@ import socket
 import sys
 import os
 
-from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS
+from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.DataStructures import Dict
 from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip
 from src.mp3.constants import REPLICATION_FACTOR
@@ -16,24 +16,29 @@ def handle_get(file_name, socket):
     read_file_to_socket(file_name, socket)
     return
 
-def handle_merge(file_name, socket, ip_address):
+def handle_merge(file_name, s, ip_address):
     # file_hash = generate_sha1(file_name)
     # 
     # sender_id = id_from_ip(ip_address)
-
+    print("handle_merge")
     while (1):
         data = memtable.get(file_name)
+        if (len(data) == 0):
+            print("nothing")
+            break
         for chunk in data:
-            socket.sendall(chunk.encode())
-
-    with open(f"fs/{file_name}", "a") as f:
+            if (not chunk): continue
+            s.sendall(chunk.encode())
+    s.shutdown(socket.SHUT_WR)
+    with open(f"src/mp3/fs/{file_name}", "a") as f:
         while (1):
-            data = socket.recv(1024 * 1024)
-            if (data == b''): return
+            data = s.recv(1024 * 1024)
+            print("a")
+            if (data == b''): break
+            print("1")
             f.write(data.decode('utf-8'))
 
     memtable.clear(file_name)
-    socket.sendall("OK".encode())
     return
 
 def handle_append(file_name, socket): 
@@ -81,19 +86,21 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     # Start Merge
     elif (mode == "P"):
         merge_file(file_name)
-    
     client_socket.close()
 
-def request_merge(machine_id):
+def request_merge(machine_id, file_name):
     try:    
-        server= socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.settimeout(RECEIVE_TIMEOUT)
         server.connect((HOSTS[machine_id - 1], FILE_SYSTEM_PORT))
-        server.sendall(b"M")  
-        return socket
+        length = len(file_name).to_bytes(1, byteorder='little')
+        server.sendall(b"M" + length + file_name.encode())
+        return server
     except (ConnectionRefusedError, socket.timeout):
+        print("Connection Refucse")
         return -1
     except (OSError):
+        print("OS ERROR")
         return -2
 
 def merge_file(file_name):
@@ -102,34 +109,34 @@ def merge_file(file_name):
     buffer = [""] * (REPLICATION_FACTOR - 1)
     sockets = []
     for i in range(REPLICATION_FACTOR):
-        replica_id = (file_id + i) % 10 + 1
+        replica_id = i + 1 # TODO: (file_id + i) % 10 + 1
         if (machine_id == replica_id): 
             continue
-        sockets.append(request_merge(replica_id))
+        sockets.append(request_merge(replica_id, file_name))
     
-    for i, socket in enumerate(sockets):
+    for i, s in enumerate(sockets):
         while (1):
-            data = socket.recv(1024 * 1024)
-            if (data == b''): return
-            buffer[i] += data
+            data = s.recv(1024 * 1024)
+            if (data == b''): break
+            buffer[i] += data.decode('utf-8')
         
-    for i, socket in enumerate(sockets):
+    print(buffer)
+    for i, s in enumerate(sockets):
+        for chunk in memtable.get(file_name):
+            s.sendall(chunk)
         for chunk in buffer:
-            socket.sendall(chunk)
+            print("send")
+            s.sendall(chunk.encode())
     
-    for socket in sockets:
-        try:
-            status = socket.recvfrom(2).decode('utf-8')
-            if (status != "OK"):
-                raise ConnectionRefusedError
-        except (ConnectionRefusedError, socket.timeout):
-            print("Merge Failed")
-            return -1
+    s.shutdown(socket.SHUT_WR)
 
-    with open(f"fs/{file_name}", "a") as file:
-        for chunk in self.data:
-                file.write(chunk)
-    
+    with open(f"src/mp3/fs/{file_name}", "a") as file:
+        for chunk in memtable.get(file_name):
+            file.write(chunk.decode('utf-8'))
+        for chunk in buffer:
+            file.write(chunk)
+        file.write('\n')
+    memtable.clear(file_name)
 def start_server(machine_id: int):
     
     """

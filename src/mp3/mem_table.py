@@ -9,13 +9,13 @@ class MemTable:
         print(self.data[filename])
         return 1
     def get(self, file_name):
-        return self.data[filename]
+        return self.data[file_name]
     
     def clear(self, file_name):
         self.data[file_name] = []
     
     def merge(self, file_name):
-        with open(f"fs/file_name", "a") as file:
+        with open(f"fs/{file_name}", "a") as file:
             for chunk in self.data:
                 file.write(chunk)
     
