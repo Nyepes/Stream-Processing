@@ -1,7 +1,9 @@
 import sys
 import os
+import socket
+
 from src.shared.constants import HOSTS
-from src.mp3.shared import generate_sha1, request_file
+from src.mp3.shared import generate_sha1, request_file, id_from_ip()
 """
 Script to run when calling ./run.sh list_mem
 """
@@ -18,14 +20,12 @@ def get_machines():
 
 if __name__ == "__main__":
     
+    my_id = id_from_ip(socket.gethostname())
     file_name = sys.argv[1]
     output_file = sys.argv[2]
-    machines = get_machines()
+    
+    server_id = get_receiver_id_from_file(my_id, file_name)
 
-    value = int(generate_sha1(file_name), 16)
-
-    machine_with_file = value % 10 + 1
-
-    request_file(1, file_name, output_file)
+    request_file(server_id, file_name, output_file)
 
 

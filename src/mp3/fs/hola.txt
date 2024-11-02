@@ -1,6 +1,4 @@
-hola
-
-#!/bin/bash
+hola#!/bin/bash
 
 # dgrep function: Searches for a string in a given directory recursively
 dgrep_server() {

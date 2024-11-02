@@ -3,7 +3,8 @@ import sys
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines, get_my_id
-from src.mp3.shared import generate_sha1, send_file
+from src.mp3.shared import generate_sha1, send_file, id_from_ip, get_receiver_id_from_file
+from src.mp3.constants import REPLICATION_FACTOR
 
 BUFFER_SIZE = 1024
 
@@ -13,14 +14,13 @@ def request_append_file(sender_id, receiver_id, server_file_name, local_file_nam
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
             length = len(server_file_name).to_bytes(1, byteorder='little')
-            sender = sender_id.to_bytes(1, byteorder='little')
-            server.sendall(b"A" + length + server_file_name.encode() + sender)
+            server.sendall(b"A" + length + server_file_name.encode())
             send_file(server, local_file_name)
             server.shutdown(socket.SHUT_WR)
             data = server.recv(BUFFER_SIZE).decode("utf-8")
             if (data == b''): return
             if (data == "ERROR"):
-                return -1   
+                return -1
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
@@ -32,24 +32,13 @@ def request_append_file(sender_id, receiver_id, server_file_name, local_file_nam
 if __name__ == "__main__":
     
 
-    my_id = get_my_id() % 10
+    my_id = id_from_ip(socket.gethostname())
+    local_file = sys.argv[1]
+    file_name = sys.argv[2]
 
-    file_name = sys.argv[1]
-    machines = get_machines()
-
-    value = generate_sha1(file_name)
-    machine_with_file = 1 # value % 10 + 1
-
-
-    # if (id < machine_with_file + REPLICATION_FACTOR and id >= machine_with_file):
-    #     res = create_local_file()
-    #     if (res < 0):
-    #         print("Failed Creating File")
-    #     else:
-    #         print("File Created")
-    # else:
-    # TODO: 1 -> machine_with_file + id % REPLICATION_FACTOR
-    res = request_append_file(1, 1, "hola.txt", file_name)
+    server_id = get_receiver_id_from_file(my_id, file_name)
+    
+    res = request_append_file(my_id, server_id , file_name, local_file)
     if (res < 0):
          print("Append Failed")
     else:

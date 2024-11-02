@@ -60,6 +60,25 @@ def send_file(receiver_socket, file_name):
         print(f"OS error: {e}")
 
 
+def get_receiver_id_from_file(my_id, file_name):
+
+    machines = get_machines()
+    value = generate_sha1(file_name)
+    file_id = value % 10 + 1
+    server_id = -1
+
+    if (my_id < file_id + REPLICATION_FACTOR and my_id >= file_id and my_id in machines):
+        server_id = my_id
+    else:
+        machines.sort()
+        for machine_id in machines:
+            if (machine_id >= file_id):
+                server_id = machine_id
+        server_id = (server_id + my_id) % 10 + 1
+    return server_id
+
 def id_from_ip(ip):
     return int(ip[13:15])
+
+
 

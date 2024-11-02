@@ -3,7 +3,7 @@ import sys
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines, get_my_id
-from src.mp3.shared import generate_sha1, send_file
+from src.mp3.shared import generate_sha1, send_file, get_receiver_id_from_file
 
 BUFFER_SIZE = 1024
 
@@ -28,25 +28,13 @@ def request_merge_file(receiver_id, server_file_name):
 
 if __name__ == "__main__":
     
-
-    my_id = get_my_id() % 10
-
     file_name = sys.argv[1]
     machines = get_machines()
 
     value = generate_sha1(file_name)
-    machine_with_file = 1 # value % 10 + 1
+    get_receiver_id_from_file(0, file_name)
 
-
-    # if (id < machine_with_file + REPLICATION_FACTOR and id >= machine_with_file):
-    #     res = create_local_file()
-    #     if (res < 0):
-    #         print("Failed Creating File")
-    #     else:
-    #         print("File Created")
-    # else:
-    # TODO: 1 -> machine_with_file + id % REPLICATION_FACTOR
-    res = request_merge_file(1, file_name)
+    res = request_merge_file(get_receiver_id_from_file, file_name)
     if (res < 0):
          print("Merge Failed")
     else:
