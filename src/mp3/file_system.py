@@ -17,18 +17,13 @@ def handle_get(file_name, socket):
     return
 
 def handle_merge(file_name, s, ip_address):
-    # file_hash = generate_sha1(file_name)
-    # 
-    # sender_id = id_from_ip(ip_address)
     print("handle_merge")
-    while (1):
-        data = memtable.get(file_name)
-        if (len(data) == 0):
-            print("nothing")
-            break
-        for chunk in data:
-            if (not chunk): continue
-            s.sendall(chunk.encode())
+    data = memtable.get(file_name)
+    if (len(data) == 0):
+        print("nothing")
+    for chunk in data:
+        if (not chunk): continue
+        s.sendall(chunk)
     s.shutdown(socket.SHUT_WR)
     with open(f"src/mp3/fs/{file_name}", "a") as f:
         while (1):
@@ -117,7 +112,8 @@ def merge_file(file_name):
     for i, s in enumerate(sockets):
         while (1):
             data = s.recv(1024 * 1024)
-            if (data == b''): break
+            print(data)
+            if (data == b'' or not data): break
             buffer[i] += data.decode('utf-8')
         
     print(buffer)
