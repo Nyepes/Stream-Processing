@@ -3,7 +3,8 @@ import sys
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines
-from src.mp3.shared import generate_sha1
+from src.mp3.shared import generate_sha1, get_receiver_id_from_file, id_from_ip
+from src.mp3.constants import REPLICATION_FACTOR
 
 BUFFER_SIZE = 1024
 
@@ -22,29 +23,29 @@ def request_create_file(machine_to_request, file_name):
         return -1
     except (OSError):
         return -2
-    return 1
+    return 0
 
     
 
 if __name__ == "__main__":
-    my_id = int(socket.gethostname()[13:15])
+
     file_name = sys.argv[1]
-    machines = get_machines()
-    value = generate_sha1(file_name)
-    machine_with_file = 1 # value % 10 + 1
+    server_id = get_receiver_id_from_file(0, file_name)
+    machines = get_machines() + [id_from_ip(socket.gethostname())] # TODO: Fix others
+    machines.sort()
 
-
-    # if (id < machine_with_file + REPLICATION_FACTOR and id >= machine_with_file):
-    #     res = create_local_file()
-    #     if (res < 0):
-    #         print("Failed Creating File")
-    #     else:
-    #         print("File Created")
-    # else:
-    # TODO: 1 -> machine_with_file + id % REPLICATION_FACTOR
-    res = request_create_file(1 , file_name)
-    if (res < 0):
-         print("Failed Creating File")
+    for i in range(len(machines)):
+        if (machines[i] >= server_id):
+            break
+    res = 0
+    print(machines)
+    for j in range(REPLICATION_FACTOR):
+        print(machines[(i+j)%len(machines)])
+        res += request_create_file(machines[(i + j) % len(machines)] , file_name)
+    
+    if (res != 0):
+        print(res)
+        print("Failed Creating File")
     else:
         print("File Created")
 

@@ -32,9 +32,10 @@ if __name__ == "__main__":
     machines = get_machines()
 
     value = generate_sha1(file_name)
-    get_receiver_id_from_file(0, file_name)
-
-    res = request_merge_file(get_receiver_id_from_file, file_name)
+    receiver_id = get_receiver_id_from_file(0, file_name)
+    print(receiver_id)
+    res = request_merge_file(receiver_id, file_name)
+    res = 0
     if (res < 0):
          print("Merge Failed")
     else:

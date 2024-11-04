@@ -8,7 +8,7 @@ from src.mp3.constants import REPLICATION_FACTOR
 
 BUFFER_SIZE = 1024
 
-def request_append_file(sender_id, receiver_id, server_file_name, local_file_name):
+def request_append_file(receiver_id, server_file_name, local_file_name):
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
@@ -37,8 +37,8 @@ if __name__ == "__main__":
     file_name = sys.argv[2]
 
     server_id = get_receiver_id_from_file(my_id, file_name)
-    
-    res = request_append_file(my_id, server_id , file_name, local_file)
+    print(server_id)
+    res = request_append_file(server_id , file_name, local_file)
     if (res < 0):
          print("Append Failed")
     else:

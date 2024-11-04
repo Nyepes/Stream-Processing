@@ -3,6 +3,7 @@ import socket
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines
+from src.mp3.constants import REPLICATION_FACTOR
 
 def generate_sha1(input_string):
     """Generate a SHA-1 hash of the input string."""
@@ -65,17 +66,32 @@ def get_receiver_id_from_file(my_id, file_name):
     machines = get_machines()
     value = generate_sha1(file_name)
     file_id = value % 10 + 1
-    server_id = -1
-
+    print(file_id)
     if (my_id < file_id + REPLICATION_FACTOR and my_id >= file_id and my_id in machines):
-        server_id = my_id
+        return my_id
     else:
         machines.sort()
+        print(machines)
         for machine_id in machines:
             if (machine_id >= file_id):
-                server_id = machine_id
-        server_id = (server_id + my_id) % 10 + 1
-    return server_id
+                return (machine_id + my_id - 1) % 10 + 1
+    return min(machines)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def id_from_ip(ip):
     return int(ip[13:15])
