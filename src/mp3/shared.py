@@ -96,6 +96,14 @@ def get_receiver_id_from_file(my_id, file_name):
                 return machines[(i + my_id % REPLICATION_FACTOR) % len(machines)]
     return min(machines)
 
+def get_file_head(machines, file):
+    machines = get_machines() + [my_id]
+    for i, machine_id in enumerate(machines):
+        if (machine_id >= file_id):
+            return machines[i % len(machines)]
+    return min(machines)
+    
+
 
 
 

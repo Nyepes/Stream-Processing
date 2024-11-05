@@ -6,7 +6,7 @@ from time import sleep
 
 from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.DataStructures.mem_table import MemTable
-from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip, get_machines, send_file
+from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip, get_machines, send_file, get_receiver_id_from_file, get_file_head
 from src.mp3.constants import REPLICATION_FACTOR
 
 
@@ -135,8 +135,11 @@ def merge_file(file_name):
     # At 0 we have id 0 mem table at 1 we have 1 memtable and at 2 we have 2 memtable
     buffer = [""] * (REPLICATION_FACTOR - 1)
     sockets = []
+
+    file_head = get_file_head(file_id % 10 + 1)
+
     for i in range(min(REPLICATION_FACTOR, len(member_list))):
-        replica_id = (file_id + i) % 10 + 1
+        replica_id = (file_head + i) % len(machines) + 1
         if (machine_id == replica_id): 
             continue
         sockets.append(request_merge(replica_id, file_name))
@@ -156,7 +159,7 @@ def merge_file(file_name):
             print("send")
             s.sendall(chunk.encode())
     
-    s.shutdown(socket.SHUT_WR)
+        s.shutdown(socket.SHUT_WR)
 
     with open(f"src/mp3/fs/{file_name}", "a") as file:
         for chunk in memtable.get(file_name):
