@@ -80,7 +80,7 @@ def request_append_file(receiver_id, server_file_name, local_file_name):
 
 def get_receiver_id_from_file(my_id, file_name):
 
-    machines = get_machines() + [my_id]
+    machines = get_machines() + [id_from_ip(socket.gethostname())]
     machines.sort()
 
     value = generate_sha1(file_name)
@@ -96,8 +96,8 @@ def get_receiver_id_from_file(my_id, file_name):
                 return machines[(i + my_id % REPLICATION_FACTOR) % len(machines)]
     return min(machines)
 
-def get_file_head(machines, file):
-    machines = get_machines() + [my_id]
+def get_file_head(file_id):
+    machines = get_machines() + [id_from_ip(socket.gethostname())]
     for i, machine_id in enumerate(machines):
         if (machine_id >= file_id):
             return machines[i % len(machines)]

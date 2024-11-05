@@ -101,6 +101,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         handle_get(file_name, client_socket)
     # MERGE
     elif (mode == "M"):
+        print("MERGEs")
         handle_merge(file_name, client_socket, ip_address)
     # Append
     elif (mode == "A"):
