@@ -25,6 +25,10 @@ members() {
   python src/mp2/utils/list_members.py
 }
 
+ls() {
+  python src/mp3/bin/ls.py "$@"
+}
+
 get_id() {
   python "src/mp2/utils/get_id.py"
 }
@@ -96,6 +100,9 @@ elif [ "$1" == "append" ]; then
 elif [ "$1" == "merge" ]; then
   shift 
   python src/mp3/merge.py "$@"
+elif [ "$1 == ls" ]; then
+  shift
+  ls "$@"
 else
   echo "$1"
   echo "Command not found"

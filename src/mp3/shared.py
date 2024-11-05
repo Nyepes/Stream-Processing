@@ -63,7 +63,7 @@ def send_file(receiver_socket, file_name):
 
 def get_receiver_id_from_file(my_id, file_name):
 
-    machines = get_machines()
+    machines = get_machines() + [my_id]
     value = generate_sha1(file_name)
     file_id = value % 10 + 1
     print(file_id)
