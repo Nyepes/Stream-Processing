@@ -18,6 +18,9 @@ machine_id = int(sys.argv[1])
 
 def handle_get(file_name, socket):
     read_file_to_socket(file_name, socket)
+    in_memory = memtable.get(file_name)
+    for chunk in in_memory:
+        socket.sendall(chunk)
     return
 
 def handle_merge(file_name, s, ip_address):
@@ -113,6 +116,8 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     elif (mode == "P"):
         merge_file(file_name)
     elif (mode == "J"):
+        member_list = get_machines()
+        print(member_list)
         send_files_by_id(int(file_name), client_socket)
     client_socket.close()
 
@@ -140,24 +145,21 @@ def merge_file(file_name):
     file_head = get_file_head(file_id % 10 + 1)
 
     for i in range(min(REPLICATION_FACTOR, len(member_list))):
-        replica_id = (file_head + i) % len(machines) + 1
+        replica_id = (file_head + i) % len(member_list) + 1
         if (machine_id == replica_id): 
             continue
+        print(f"{replica_id} rid")
         sockets.append(request_merge(replica_id, file_name))
     
     for i, s in enumerate(sockets):
         while (1):
             data = s.recv(1024 * 1024)
-            print(data)
             if (data == b'' or not data): break
             buffer[i] += data.decode('utf-8')
-        
-    print(buffer)
     for i, s in enumerate(sockets):
         for chunk in memtable.get(file_name):
             s.sendall(chunk)
         for chunk in buffer:
-            print("send")
             s.sendall(chunk.encode())
     
         s.shutdown(socket.SHUT_WR)
@@ -176,28 +178,21 @@ def handle_failed():
 
 def handle_joined():
     if (len(member_list) <= 0): return
-    print('a')
-
     mem_set = list(member_list)
-    print(mem_set)
     mem_set.sort()
     succesor = 0
     for i, id in enumerate(mem_set):
         if (id >= machine_id):
             succesor = i
-    print(f"req: {succesor}")
     request_files_by_id(machine_id, mem_set[succesor])
     
     predecessor_1 = (succesor - 1) % len(member_list)
-    print(f"req: {predecessor_1}")
     if (predecessor_1 != succesor):
         request_files_by_id(machine_id, mem_set[predecessor_1])
 
     if (len(mem_set) >= 2):
         predecessor_2 = (succesor - 2) % len(member_list)
         request_files_by_id(machine_id, mem_set[predecessor_2])
-        print(f"req: {2}")
-
 
 def get_files_hash():
     file_hashes = {}
@@ -227,8 +222,6 @@ def request_files_by_id(from_id, to):
             server.connect((HOSTS[to - 1], FILE_SYSTEM_PORT))
             val = 1
             length = val.to_bytes(1, byteorder='little')
-            server.sendall(b"J" + length + (str(from_id)).encode())
-            print("sent")
             write_requested_files(server)
     except (ConnectionRefusedError, socket.timeout):
         return -1

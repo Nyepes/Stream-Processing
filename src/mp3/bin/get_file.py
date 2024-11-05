@@ -3,7 +3,7 @@ import os
 import socket
 
 from src.shared.constants import HOSTS
-from src.mp3.shared import generate_sha1, request_file, id_from_ip()
+from src.mp3.shared import generate_sha1, request_file, id_from_ip, get_receiver_id_from_file
 """
 Script to run when calling ./run.sh list_mem
 """
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     server_id = get_receiver_id_from_file(my_id, file_name)
 
     res = request_file(server_id, file_name, output_file)
-    if (res >= 0)
+    if (res >= 0):
         print ("File received")
     else:
         print("Failed Operation")
