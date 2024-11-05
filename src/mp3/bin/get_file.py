@@ -26,6 +26,11 @@ if __name__ == "__main__":
     
     server_id = get_receiver_id_from_file(my_id, file_name)
 
-    request_file(server_id, file_name, output_file)
+    res = request_file(server_id, file_name, output_file)
+    if (res >= 0)
+        print ("File received")
+    else:
+        print("Failed Operation")
+
 
 
