@@ -6,8 +6,8 @@ from time import sleep
 
 from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.DataStructures.mem_table import MemTable
-from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip, get_machines, send_file, get_receiver_id_from_file, get_file_head
-from src.mp3.constants import REPLICATION_FACTOR
+from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip, get_machines, send_file, get_receiver_id_from_file, get_file_head, get_server_file_path, get_server_file_metadata, write_server_file_metadata
+from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA
 
 
 memtable = None
@@ -16,48 +16,81 @@ machine_id = int(sys.argv[1])
 
 # merge_counters = None # filename: counter (string, int)
 
-def handle_get(file_name, socket):
-    read_file_to_socket(file_name, socket)
+def handle_get(file_name, socket, client_version = 0):
+    # read_file_to_socket(file_name, socket)
+    file_version = memtable.get_file_version(file_name)
+    if (file_version is None):
+        file_version = get_server_file_metadata(file_name)["version"]
+    print(f"versions {client_version} {file_version}")
+    if (client_version == file_version):
+        socket.sendall(client_version.to_bytes(4, byteorder="little"))
+        return
+    print("here")
+    send_file(socket, get_server_file_path(file_name), file_version)
     in_memory = memtable.get(file_name)
+    print("mem")
     for chunk in in_memory:
+        if (chunk is None):
+            continue
+        print(chunk)
         socket.sendall(chunk)
-    return
 
 def handle_merge(file_name, s, ip_address):
-    print("handle_merge")
     data = memtable.get(file_name)
+    file_version = memtable.get_file_version(file_name)
+
+    if file_name is None: file_version = 0
+    s.sendall(file_version.to_byte(4, byteorder="little"))
+
     for chunk in data:
         if (not chunk): continue
         s.sendall(chunk)
     s.shutdown(socket.SHUT_WR)
-    with open(f"src/mp3/fs/{file_name}", "a") as f:
+    new_version = int.from_bytes(s.recv(4), byteorder="little")
+
+    with open(get_server_file_path(file_name), "a") as f:
         while (1):
             data = s.recv(1024 * 1024)
-            print("a")
             if (data == b''): break
-            print("1")
             f.write(data.decode('utf-8'))
-
+        
+    memtable.set_file_version(new_version)
+    metadata = get_server_file_metadata(file_name)
+    metadata["version"] = new_version
+    write_server_file_metadata(file_name, metadata)
     memtable.clear(file_name)
-    return
 
 def handle_append(file_name, socket): 
     while (1):
         print("loopy")
         data = socket.recv(1024 * 1024)
-        if (data == b''): return
+        print(data)
+        if (data == b''): break
         memtable.add(file_name, data)
-    print("DOne")
+
+    version = memtable.get_file_version(file_name)
+    # print("v1: " + version)
+    if (version is None):
+        print("not found on memtable")
+        version = get_server_file_metadata(file_name)["version"]
+    
+    print(version)
+    memtable.set_file_version(file_name, version + 1)
+
     socket.sendall("OK".encode())
     socket.close()
 
 def handle_create(file_name, socket):
-    path = f"src/mp3/fs/{file_name}"
+    path = get_server_file_path(file_name)
     if os.path.exists(path):
         socket.sendall("ERROR".encode())
     else:
         with open(path, "w") as f:
             f.write("")
+        metadata = get_server_file_metadata(file_name)
+        metadata = INIT_FILE_METADATA
+        metadata["version"] += 1
+        write_server_file_metadata(file_name, metadata)
         socket.sendall("OK".encode())
     return
 
@@ -81,11 +114,13 @@ def send_files_by_id(id_to_send, client_socket):
         h = hash % 10 + 1
         print(f"{predecessor_id} < {h} <= {machine_id}")
         if (in_range(predecessor_id, machine_id, h)):
-            file_path = "src/mp3/fs/" + file
+            file_path = get_server_file_path(file)
             client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
             client_socket.sendall(file.encode())
             file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
             client_socket.sendall(file_size)
+            file_version = get_server_file_metadata(file_name)["version"]
+            client_socket.sendall(file_version)
             send_file(client_socket, file_path)        
     
 
@@ -101,10 +136,11 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
 
     # GET
     if (mode == "G"):
-        handle_get(file_name, client_socket)
+        print(memtable.get(file_name))
+        file_version = int.from_bytes(client_socket.recv(4), byteorder="little")
+        handle_get(file_name, client_socket, client_version = file_version)
     # MERGE
     elif (mode == "M"):
-        print("MERGEs")
         handle_merge(file_name, client_socket, ip_address)
     # Append
     elif (mode == "A"):
@@ -115,6 +151,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     # Start Merge
     elif (mode == "P"):
         merge_file(file_name)
+    
     elif (mode == "J"):
         member_list = get_machines()
         print(member_list)
@@ -150,26 +187,38 @@ def merge_file(file_name):
             continue
         print(f"{replica_id} rid")
         sockets.append(request_merge(replica_id, file_name))
-    
+
+    max_version = memtable.get_file_version(file_name)
+    if (max_version is None):
+        max_version = get_server_file_metadata(file_name)["version"]
     for i, s in enumerate(sockets):
+        max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))
         while (1):
             data = s.recv(1024 * 1024)
             if (data == b'' or not data): break
             buffer[i] += data.decode('utf-8')
+
+    new_version = max_version + 1
     for i, s in enumerate(sockets):
         for chunk in memtable.get(file_name):
             s.sendall(chunk)
         for chunk in buffer:
+            s.sendall(new_version.to_bytes(4, byteorder="little"))
             s.sendall(chunk.encode())
     
         s.shutdown(socket.SHUT_WR)
 
-    with open(f"src/mp3/fs/{file_name}", "a") as file:
+    with open(get_server_file_path(file_name), "a") as file:
         for chunk in memtable.get(file_name):
             file.write(chunk.decode('utf-8'))
         for chunk in buffer:
             file.write(chunk)
         file.write('\n')
+
+    memtable.set_file_version(file_name, max_version + 1)
+    metadata = get_server_file_metadata(file_name)
+    metadata["version"] = new_version
+    write_server_file_metadata(file_name, metadata)
     memtable.clear(file_name)
 
 def handle_failed():
@@ -197,7 +246,7 @@ def handle_joined():
 def get_files_hash():
     file_hashes = {}
     for filename in os.listdir("src/mp3/fs"):
-        file_path = os.path.join("src/mp3/fs", filename)
+        file_path = get_server_file_path(filename)
         if os.path.isfile(file_path):  # Only process files, not directories
             file_hashes[filename] = generate_sha1(filename)
     return file_hashes
@@ -220,7 +269,7 @@ def request_files_by_id(from_id, to):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[to - 1], FILE_SYSTEM_PORT))
-            val = 1
+            val = from_id ## TODO: Why not from_id???
             length = val.to_bytes(1, byteorder='little')
             write_requested_files(server)
     except (ConnectionRefusedError, socket.timeout):
@@ -238,18 +287,21 @@ def write_requested_files(sock):
         filename_size = int.from_bytes(more_files, byteorder="little")
 
         filename = sock.recv(filename_size).decode()
-        print(f"filename: {filename}")
+        print(f"sending filename: {filename} ...")
 
         file_content_size = int.from_bytes(sock.recv(8), byteorder="little")
+        file_version = int.from_bytes(sock.recv(4), byteorder="little")
+        metadata = INIT_FILE_METADATA
+        metadata["version"] = file_version
+        write_server_file_metadata(file_name, metadata)
 
-        with open(f"src/mp3/fs/{filename}", "ab") as file:
+        with open(get_server_file_path(filename), "ab") as file:
 
             read = 0
 
             while (1):
                 
                 content = sock.recv(min(1024 * 1024, file_content_size - read))
-                print(content)
                 read += len(content)
                 file.write(content)
 

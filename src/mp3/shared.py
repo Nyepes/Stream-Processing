@@ -1,9 +1,12 @@
 import hashlib 
 import socket
+import json
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines
-from src.mp3.constants import REPLICATION_FACTOR
+from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA
+
+BUFFER_SIZE = 1024
 
 def generate_sha1(input_string):
     """Generate a SHA-1 hash of the input string."""
@@ -11,10 +14,9 @@ def generate_sha1(input_string):
     sha1_hash.update(input_string.encode('utf-8'))
     return int(sha1_hash.hexdigest(), 16)
 
-
 def read_file_to_socket(file_name, sock = None):
     try:
-        with open(f"src/mp3/fs/{file_name}", 'r') as file:
+        with open(get_server_file_path(file_name), 'r') as file:
             for line in file:
                 if sock is None:
                     print(line.strip())
@@ -23,30 +25,38 @@ def read_file_to_socket(file_name, sock = None):
     except:
         sock.sendall("Error".encode())
 
-
-BUFFER_SIZE = 1024
-def request_file(machine_id, file_name, output_file):
+def request_file(machine_id, file_name, output_file, version = 0):
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[machine_id - 1], FILE_SYSTEM_PORT))
             length = len(file_name).to_bytes(1, byteorder='little')
             server.sendall(b"G" + length + file_name.encode())
+            server.sendall(version.to_bytes(4, byteorder = "little"))
+            received_version = int.from_bytes(server.recv(4), byteorder="little")
+            print(version, received_version)
+            if (version is not None and received_version == version): return received_version
             with open(output_file, "wb") as output:
                 while (1):
                     data = server.recv(BUFFER_SIZE)
-                    if (data == b''): return 1
-                    output.write(data)    
+                    print(data)
+                    if (data == b'' or data == "OK"): return received_version #TODO: Maybe Change so that a file that has OK does not fail
+                    output.write(data)  
+            return received_version  
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
         return -2
 
-def send_file(receiver_socket, file_name):
+def send_file(receiver_socket, file_name, file_version=None):
     try:
+        print("sending")
+        if (file_version is not None):
+            receiver_socket.sendall(file_version.to_bytes(4, byteorder="little"))
         with open(file_name, 'rb') as file:
             while True:
-                chunk = file.read(BUFFER_SIZE)        
+                chunk = file.read(BUFFER_SIZE)
+                print(chunk)        
                 if not chunk:
                     break 
                 receiver_socket.sendall(chunk)
@@ -103,8 +113,46 @@ def get_file_head(file_id):
             return machines[i % len(machines)]
     return min(machines)
     
+def get_server_file_path(filename):
+    return f"src/mp3/fs/{filename}"
 
+def get_client_file_path(filename):
+    return f"src/mp3/local_cache/{filename}"
 
+def get_server_file_metadata(filename):
+    try:
+        metadata_file_path = f"metadata/{filename}"
+        with open(get_server_file_path(metadata_file_path), "r") as f:
+            data = json.load(f)
+        return data
+    except:
+        return INIT_FILE_METADATA
+
+def write_server_file_metadata(filename, data):
+    metadata_file_path = f"metadata/{filename}"
+    try:
+        with open(get_server_file_path(metadata_file_path), "w") as f:
+            data = json.dump(data, f)
+    except:
+        return -1
+
+def get_client_file_metadata(filename):
+    try:
+        metadata_file_path = f"metadata/{filename}"
+        with open(get_client_file_path(metadata_file_path), "r") as f:
+            data = json.load(f)
+        return data
+    except:
+        print("error")
+        return INIT_FILE_METADATA
+
+def write_client_file_metadata(filename, data):
+    metadata_file_path = f"metadata/{filename}"
+    try:
+        with open(get_client_file_path(metadata_file_path), "w") as f:
+            data = json.dump(data, f)
+    except:
+        return -1
 
 
 
