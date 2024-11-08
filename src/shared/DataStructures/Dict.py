@@ -8,9 +8,12 @@ class Dict:
     def add(self, key, val):
         with self.lock:
             self.dict[key] = val
+    def increment_list(self, key, val):
+        with self.lock:
+            self.dict[key] += [val]
     def get(self, key):
         with self.lock:
-            return self.dict[key]
+            return self.dict[key].copy()
     def increment(self, key):
         # Undefined behavior if does not support += 1
         with self.lock:

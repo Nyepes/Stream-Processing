@@ -48,6 +48,23 @@ def request_file(machine_id, file_name, output_file, version = 0):
     except (OSError):
         return -2
 
+def request_create_file(machine_to_request, file_name):
+    try:    
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.settimeout(RECEIVE_TIMEOUT)
+            server.connect((HOSTS[machine_to_request - 1], FILE_SYSTEM_PORT))
+            length = len(file_name).to_bytes(1, byteorder='little')
+            server.sendall(b"C" + length + file_name.encode())
+            data = server.recv(BUFFER_SIZE).decode("utf-8")
+            if (data == b''): return
+            if (data == "ERROR"):
+                return -1   
+    except (ConnectionRefusedError, socket.timeout):
+        return -1
+    except (OSError):
+        return -2
+    return 0
+
 def send_file(receiver_socket, file_name, file_version=None):
     try:
         print("sending")
