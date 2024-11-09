@@ -188,6 +188,17 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     elif (mode == "J"):
         member_list = get_machines() # Update member list as new node joined
         send_files_by_id(int(file_name), client_socket)
+    
+    elif (mode == "Q"):
+        server_file = filename
+        local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
+        local_file_name = client_socket.recv(file_length).decode('utf-8')
+        
+        server_id = get_receiver_id_from_file(my_id, file_name)
+        res = request_append_file(server_id , server_file, local_file_name, "N")
+
+        # Multiappend receives a file_name to append to and a path to its local file
+
 
     client_socket.close()
 
