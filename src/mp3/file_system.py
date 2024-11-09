@@ -190,7 +190,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         send_files_by_id(int(file_name), client_socket)
     
     elif (mode == "Q"):
-        server_file = filename
+        server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
         local_file_name = client_socket.recv(file_length).decode('utf-8')
         
