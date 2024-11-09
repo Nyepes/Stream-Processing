@@ -185,7 +185,7 @@ def get_replica_ids(file_id):
     machines = get_machines() + [id_from_ip(socket.gethostname())]
     machines.sort()
     
-    head = machines[0]
+    head = 0
     for i, machine_id in enumerate(machines):
         if (machine_id >= file_id):
             head = i 

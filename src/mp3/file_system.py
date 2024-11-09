@@ -234,7 +234,7 @@ def merge_file(file_name):
     sockets = []
 
     replicas = get_replica_ids(file_id)
-
+    print(replicas)
     for replica_id in replicas:
 
         if (machine_id == replica_id):
@@ -274,7 +274,7 @@ def merge_file(file_name):
         
         for chunk, status in memtable.get(file_name): # head replica
             if not chunk or status == "F": continue
-            s.sendall(chunk[:-1] + "\n".encode())
+            s.sendall(chunk + "\n".encode()) # REVISE chunk[:-1]
         
         for chunk, status in buffer: # other replicas
             if not chunk or status == "F": continue
