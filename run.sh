@@ -79,6 +79,8 @@ elif [ "$1" == "build" ]; then
   build
 elif [ "$1" == "start" ]; then
   shift
+  rm -r src/mp3/fs
+  mkdir -p src/mp3/fs/metadata
   killall "python"
   start "$@"
 elif [ "$1" == "list_mem" ]; then
