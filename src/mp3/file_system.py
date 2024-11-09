@@ -289,12 +289,13 @@ def handle_failed(failed_nodes, member_list):
 
     machines_sorted = list(member_list) + [machine_id]
     machines_sorted.sort()
-    
+
     my_idx = machines_sorted.index(machine_id)
+
+    # Head replica fails
+
     prev_idx = (my_idx - 1) % len(machines_sorted)
     prev_id = machines_sorted[prev_idx]
-    
-    # Head replica fails
 
     slave_files = []
     for node in failed_nodes:
@@ -305,7 +306,6 @@ def handle_failed(failed_nodes, member_list):
             
         idx = machines_sorted.index(node)
         new_owner = machines_sorted[(idx + 1) % len(machines_sorted)]
-        print(ownership_list.get(node))
         ownership_list.increment_list(new_owner, ownership_list.get(node))
         ownership_list.delete(node)
 
@@ -317,6 +317,25 @@ def handle_failed(failed_nodes, member_list):
         request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
 
     # Other replica fails
+    for node in failed_nodes:
+
+        idx = machines_sorted.index(node)
+
+        affected_replica_heads = [machines_sorted[(idx - 1 - i) % len(machines_sorted)] for i in range(REPLICATION_FACTOR - 1)]
+        print(affected_replica_heads)
+        
+        if machine_id in affected_replica_heads:
+            
+            for file_name in ownership_list.get(machine_id):
+
+                print(file_name)
+                
+                receiver_id = machines_sorted[(my_idx + REPLICATION_FACTOR) % len(machines_sorted)] # don't subtract 1 as failed node still in machines sorted
+                print(machines_sorted)
+                print(receiver_id)
+                
+                request_create_file(receiver_id, file_name)
+                request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
 
 def handle_joined():
     if (len(member_list) <= 0): return
