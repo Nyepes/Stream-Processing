@@ -9,21 +9,29 @@ BUFFER_SIZE = 1024
 
 def request_merge_file(receiver_id, server_file_name):
     try:    
+        
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
+            # Initialize connection
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
+            
+            # Payload
             length = len(server_file_name).to_bytes(1, byteorder='little')
-           
             server.sendall(b"P" + length + server_file_name.encode())
+
+            # Response
             data = server.recv(BUFFER_SIZE).decode("utf-8")
-            if (data == b''): return
-            if (data == "ERROR"):
+            
+            if (data == b'' or data == "ERROR"): # Expected OK
                 return -1   
+    
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
         return -2
-    return 1
+    
+    return 0
 
 
 if __name__ == "__main__":
@@ -33,9 +41,11 @@ if __name__ == "__main__":
 
     value = generate_sha1(file_name)
     receiver_id = get_receiver_id_from_file(0, file_name)
-    print(f"r {receiver_id}")
+    
+    print(f"Head replica: {receiver_id}")
+    
     res = request_merge_file(receiver_id, file_name)
-    res = 0
+    
     if (res < 0):
          print("Merge Failed")
     else:

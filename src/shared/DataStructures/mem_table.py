@@ -24,9 +24,4 @@ class MemTable:
     def clear(self, file_name):
         self.data[file_name] = []
     
-    def merge(self, file_name):
-        with open(f"fs/{file_name}", "a") as file:
-            for chunk in self.data:
-                file.write(chunk)
-    
     ## TODO: On 10 return

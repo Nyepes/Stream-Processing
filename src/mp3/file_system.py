@@ -47,16 +47,18 @@ def handle_merge(file_name, s, ip_address):
     if file_version is None: 
         file_version = 0
 
-    s.sendall(file_version.to_bytes(4, byteorder="little"))
+    s.sendall(file_version.to_bytes(4, byteorder="little")) # send file version
 
-    for chunk in data:
+    for chunk in data: # send memtable data
         if (not chunk): continue
         s.sendall(chunk)
     
-    s.shutdown(socket.SHUT_WR)
-    new_version = int.from_bytes(s.recv(4), byteorder="little")
+    s.shutdown(socket.SHUT_WR) # close write end
 
-    with open(get_server_file_path(file_name), "a") as f:
+    new_version = int.from_bytes(s.recv(4), byteorder="little") # recieve new version
+
+    with open(get_server_file_path(file_name), "a") as f: # append new data
+        
         while (1):
             data = s.recv(1024 * 1024)
             if (data == b''): break
@@ -172,6 +174,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     
     # Start Merge
     elif (mode == "P"):
+        print("HERE")
         merge_file(file_name)
     
     elif (mode == "J"):
@@ -223,30 +226,31 @@ def merge_file(file_name):
         if (replica_socket != -1 and replica_socket != -2):
             sockets.append(replica_socket)
 
-    max_version = memtable.get_file_version(file_name)
+    max_version = memtable.get_file_version(file_name) # get current version
 
     if (max_version is None):
         max_version = get_server_file_metadata(file_name)["version"]
 
     for i, s in enumerate(sockets):
         
-        max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))
+        max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little")) # recieve version and update
         
-        while (1):
+        while (1): # recieve memtable data
             data = s.recv(1024 * 1024)
             if (data == b'' or not data): break
-            print(f"data: {data}")
             buffer[i] += data.decode('utf-8')
 
     new_version = max_version + 1
     for i, s in enumerate(sockets):
+
+        s.sendall(new_version.to_bytes(4, byteorder="little")) # send new version
         
         for chunk in memtable.get(file_name): # head replica
             if not chunk: continue
             s.sendall(chunk + "\n".encode())
         
         for chunk in buffer: # other replicas
-            s.sendall(new_version.to_bytes(4, byteorder="little"))
+            # s.sendall(new_version.to_bytes(4, byteorder="little"))
             if not chunk: continue
             s.sendall(chunk.encode() + "\n".encode())
     
