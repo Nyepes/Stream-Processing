@@ -28,41 +28,93 @@ def read_file_to_socket(file_name, sock = None):
 def request_file(machine_id, file_name, output_file, version = 0):
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
+            # Init connection
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[machine_id - 1], FILE_SYSTEM_PORT))
+            
+            # Send payload (G + length of file_name + file_name)    
             length = len(file_name).to_bytes(1, byteorder='little')
             server.sendall(b"G" + length + file_name.encode())
             server.sendall(version.to_bytes(4, byteorder = "little"))
+            
+            # Receive response
             received_version = int.from_bytes(server.recv(4), byteorder="little")
             print(version, received_version)
+            
             if (version is not None and received_version == version): return received_version
+            
+            # Receive file
             with open(output_file, "wb") as output:
                 while (1):
                     data = server.recv(BUFFER_SIZE)
-                    print(data)
                     if (data == b'' or data == "OK"): return received_version #TODO: Maybe Change so that a file that has OK does not fail
-                    output.write(data)  
-            return received_version  
+                    output.write(data) 
+
+            return received_version
+
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
         return -2
 
 def request_create_file(machine_to_request, file_name):
+    
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
+            # Init connection
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[machine_to_request - 1], FILE_SYSTEM_PORT))
+            
+            # Send payload (C + length of file_name + file_name)
             length = len(file_name).to_bytes(1, byteorder='little')
             server.sendall(b"C" + length + file_name.encode())
+            
+            # Receive response
             data = server.recv(BUFFER_SIZE).decode("utf-8")
-            if (data == b''): return
-            if (data == "ERROR"):
+            
+            if (data == b'' or data == "ERROR"): # Expects OK
                 return -1   
+
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
         return -2
+    
+    return 0
+
+def request_append_file(receiver_id, server_file_name, local_file_name):
+    
+    try:    
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
+            # Init connection
+            server.settimeout(RECEIVE_TIMEOUT)
+            server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
+            
+            # Send payload (A + length of server_file_name + server_file_name)
+            length = len(server_file_name).to_bytes(1, byteorder='little')
+            server.sendall(b"A" + length + server_file_name.encode())
+            
+            # Send file
+            send_file(server, local_file_name)
+            
+            # Shutdown connection
+            server.shutdown(socket.SHUT_WR)
+            
+            # Receive response
+            data = server.recv(BUFFER_SIZE).decode("utf-8") # Expects OK
+            
+            if (data == b'' or data == "ERROR"):
+                return -1
+
+    except (ConnectionRefusedError, socket.timeout):
+        return -1
+    except (OSError):
+        return -2
+    
     return 0
 
 def send_file(receiver_socket, file_name, file_version=None):
@@ -72,8 +124,7 @@ def send_file(receiver_socket, file_name, file_version=None):
             receiver_socket.sendall(file_version.to_bytes(4, byteorder="little"))
         with open(file_name, 'rb') as file:
             while True:
-                chunk = file.read(BUFFER_SIZE)
-                print(chunk)        
+                chunk = file.read(BUFFER_SIZE)      
                 if not chunk:
                     break 
                 receiver_socket.sendall(chunk)
@@ -85,54 +136,49 @@ def send_file(receiver_socket, file_name, file_version=None):
     except OSError as e:
         print(f"OS error: {e}")
 
-def request_append_file(receiver_id, server_file_name, local_file_name):
-    try:    
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.settimeout(RECEIVE_TIMEOUT)
-            server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
-            print(HOSTS[receiver_id - 1])
-            length = len(server_file_name).to_bytes(1, byteorder='little')
-            server.sendall(b"A" + length + server_file_name.encode())
-            send_file(server, local_file_name)
-            server.shutdown(socket.SHUT_WR)
-            data = server.recv(BUFFER_SIZE).decode("utf-8")
-            if (data == b''): return
-            if (data == "ERROR"):
-                return -1
-    except (ConnectionRefusedError, socket.timeout):
-        return -1
-    except (OSError):
-        return -2
-    return 1
-
 def get_receiver_id_from_file(my_id, file_name):
+
+    """
+
+    return replica id to send file to
+
+    Note that if my_id is 0 we send the head replica
+
+    """
 
     machines = get_machines() + [id_from_ip(socket.gethostname())]
     machines.sort()
 
-    value = generate_sha1(file_name)
-    file_id = value % 10 + 1
-    print(file_id)
-    if (my_id < file_id + REPLICATION_FACTOR and my_id >= file_id and my_id in machines):
-        print("a")
+    file_id = generate_sha1(file_name)
+
+    """
+    
+    if (file_id <= my_id < file_id + REPLICATION_FACTOR and my_id in machines):
+        
         return my_id
+    
     else:
-        print(machines)
+        
         for i, machine_id in enumerate(machines):
             if (machine_id >= file_id):
                 return machines[(i + my_id % REPLICATION_FACTOR) % len(machines)]
-    return min(machines)
+                
+    """
 
-def get_file_head(file_id):
-    
-    machines = get_machines() + [id_from_ip(socket.gethostname())]
-    machines.sort()
-    
+    head = 0
     for i, machine_id in enumerate(machines):
         if (machine_id >= file_id):
-            return machines[i % len(machines)]
+            head = i
+            break
     
-    return min(machines)
+    replicas = []
+    for j in range(REPLICATION_FACTOR):
+        replicas.append(machines[(head + j) % len(machines)])
+
+    if (my_id in replicas): # Node is replica itself
+        return my_id
+    
+    return replicas[my_id % REPLICATION_FACTOR] # Arbitrary formula for replica selection (helps with load balancing)
 
 def get_replica_ids(file_id):
     
@@ -192,22 +238,5 @@ def write_client_file_metadata(filename, data):
     except:
         return -1
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def id_from_ip(ip):
     return int(ip[13:15])
-
-
-

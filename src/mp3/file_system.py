@@ -8,7 +8,7 @@ from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS, RECEIVE_T
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.DataStructures.Dict import Dict
 
-from src.mp3.shared import read_file_to_socket, generate_sha1, id_from_ip, get_machines, send_file, get_receiver_id_from_file, get_file_head, get_server_file_path, get_server_file_metadata, write_server_file_metadata, request_create_file
+from src.mp3.shared import generate_sha1, id_from_ip, get_machines, request_append_file, send_file, get_receiver_id_from_file, get_replica_ids, get_server_file_path, get_server_file_metadata, write_server_file_metadata, request_create_file
 from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA
 
 memtable = None
@@ -20,25 +20,27 @@ ownership_list = None
 # merge_counters = None # filename: counter (string, int)
 
 def handle_get(file_name, socket, client_version = 0):
-    # read_file_to_socket(file_name, socket)
+
     file_version = memtable.get_file_version(file_name)
     if (file_version is None):
         file_version = get_server_file_metadata(file_name)["version"]
+    
     print(f"versions {client_version} {file_version}")
+    
     if (client_version == file_version):
         socket.sendall(client_version.to_bytes(4, byteorder="little"))
         return
-    print("here")
+    
     send_file(socket, get_server_file_path(file_name), file_version)
     in_memory = memtable.get(file_name)
-    print("mem")
+    
     for chunk in in_memory:
         if (chunk is None):
             continue
-        print(chunk)
         socket.sendall(chunk)
 
 def handle_merge(file_name, s, ip_address):
+    
     data = memtable.get(file_name)
     file_version = memtable.get_file_version(file_name)
 
@@ -50,6 +52,7 @@ def handle_merge(file_name, s, ip_address):
     for chunk in data:
         if (not chunk): continue
         s.sendall(chunk)
+    
     s.shutdown(socket.SHUT_WR)
     new_version = int.from_bytes(s.recv(4), byteorder="little")
 
@@ -59,7 +62,7 @@ def handle_merge(file_name, s, ip_address):
             if (data == b''): break
             f.write(data.decode('utf-8'))
         
-    memtable.set_file_version(new_version)
+    memtable.set_file_version(file_name, new_version)
     metadata = get_server_file_metadata(file_name)
     metadata["version"] = new_version
     write_server_file_metadata(file_name, metadata)
@@ -86,22 +89,29 @@ def handle_append(file_name, socket):
     socket.close()
 
 def handle_create(file_name, socket):
+    
     path = get_server_file_path(file_name)
+    
     if os.path.exists(path):
+        
         socket.sendall("ERROR".encode())
+    
     else:
+       
         with open(path, "w") as f:
             f.write("")
+        
         metadata = get_server_file_metadata(file_name)
         metadata = INIT_FILE_METADATA
         metadata["version"] += 1
+        
         write_server_file_metadata(file_name, metadata)
 
         ownership = get_receiver_id_from_file(0, file_name)
         ownership_list.increment_list(ownership, file_name)
+        print(f"Ownership: {ownership}")
 
         socket.sendall("OK".encode())
-    return
 
 def in_range(start, end, val):
 
@@ -215,6 +225,8 @@ def merge_file(file_name):
             if (data == b'' or not data): break
             buffer[i] += data.decode('utf-8')
 
+    print(buffer)
+
     new_version = max_version + 1
     for i, s in enumerate(sockets):
         for chunk in memtable.get(file_name):
@@ -239,7 +251,7 @@ def merge_file(file_name):
     memtable.clear(file_name)
 
 def handle_failed(failed_nodes):
-    new_files = []
+
     machines_sorted = get_machines() + [machine_id]
     machines_sorted.sort()
     my_idx = machines_sorted.index(machine_id)
@@ -326,12 +338,11 @@ def write_requested_files(sock):
         else:
             ownership_list.increment_list(machine_id, filename)
 
-
         file_content_size = int.from_bytes(sock.recv(8), byteorder="little")
         file_version = int.from_bytes(sock.recv(4), byteorder="little")
         metadata = INIT_FILE_METADATA
         metadata["version"] = file_version
-        write_server_file_metadata(file_name, metadata)
+        write_server_file_metadata(filename, metadata)
 
         with open(get_server_file_path(filename), "ab") as file:
 
@@ -345,8 +356,6 @@ def write_requested_files(sock):
 
                 if read == file_content_size:
                     break
-
-
 
 def start_server(machine_id: int):
     

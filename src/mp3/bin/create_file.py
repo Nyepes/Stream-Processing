@@ -17,20 +17,25 @@ if __name__ == "__main__":
 
     server_id = get_receiver_id_from_file(0, server_file_name)
     my_id = id_from_ip(socket.gethostname())
-    machines = get_machines() + [my_id] # TODO: Fix others
+    
+    machines = get_machines() + [my_id]
     machines.sort()
 
-    for i in range(len(machines)):
-        if (machines[i] >= server_id):
+    for i, machine_id in enumerate(machines):
+        if (machine_id >= server_id):
             break
+    
     res = 0
     for j in range(min(REPLICATION_FACTOR, len(machines))):
-        res += request_create_file(machines[(i + j) % len(machines)] , server_file_name)
-    if (res != 0):
+        res += request_create_file(machines[(i + j) % len(machines)] , server_file_name) # Creates empty file on all replicas
+    
+    if (res != 0): # If any of the replicas already has the file, exit
         print("File already Created")
-    receiver_id = get_receiver_id_from_file(my_id, server_file_name)
-    print(receiver_id)
+        exit(1)
+    
+    receiver_id = get_receiver_id_from_file(my_id, server_file_name) # This is replica I'm going to send the actual file content to
     res = request_append_file(receiver_id, server_file_name, file_name)
+    
     if (res < 0):
         print("Failed Creating File")
     else:
