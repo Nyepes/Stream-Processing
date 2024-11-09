@@ -14,6 +14,8 @@ failure_detector() {
 }
 
 start() {
+  rm src/member_list.txt
+  touch src/member_list.txt
   dgrep_server "$@" & 2> /dev/null
   failure_detector "$@" &
   python src/mp3/file_system.py "$@"
@@ -21,6 +23,14 @@ start() {
 
 members() {
   python src/mp2/utils/list_members.py
+}
+
+ls() {
+  python src/mp3/bin/ls.py "$@"
+}
+
+store() {
+  python src/mp3/bin/store.py "$@"
 }
 
 get_id() {
@@ -44,7 +54,7 @@ leave() {
 }
 
 merge() {
-   python "src/mp3/merge.py"
+   python "src/mp3/bin/merge.py"
 }
 
 build() {
@@ -69,6 +79,7 @@ elif [ "$1" == "build" ]; then
   build
 elif [ "$1" == "start" ]; then
   shift
+  killall "python"
   start "$@"
 elif [ "$1" == "list_mem" ]; then
   members "$@"
@@ -84,16 +95,32 @@ elif [ "$1" == "leave" ]; then
   leave "$@"
 elif [ "$1" == "get" ]; then
   shift 
-  python src/mp3/get_file.py "$@"
+  python src/mp3/bin/get_file.py "$@"
 elif [ "$1" == "create" ]; then
   shift 
-  python src/mp3/create_file.py "$@"
+  echo "hello"
+  python src/mp3/bin/create_file.py "$@"
 elif [ "$1" == "append" ]; then
   shift 
-  python src/mp3/append.py "$@"
+  python src/mp3/bin/append.py "$@"
 elif [ "$1" == "merge" ]; then
   shift 
-  python src/mp3/merge.py "$@"
+  python src/mp3/bin/merge.py "$@"
+elif [ "$1" == "ls" ]; then
+  shift
+  ls "$@"
+elif [ "$1" == "store" ]; then
+  shift
+  store "$@"
+elif [ "$1" == "getfromreplica" ]; then
+  shift
+  python src/mp3/bin/get_from_replica.py "$@"
+elif [ "$1" == "list_mem_ids" ]; then
+  members "$@"
+elif [ "$1" == "reset_fs" ]; then
+  shift
+  rm -r src/mp3/fs
+  mkdir -p src/mp3/fs/metadata
 else
   echo "$1"
   echo "Command not found"

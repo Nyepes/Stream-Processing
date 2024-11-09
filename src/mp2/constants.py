@@ -1,6 +1,6 @@
 
-PING_TIME = 0.5
-TTL = 6
+PING_TIME = 1
+TTL = 8
 
 # Member Data
 
