@@ -27,29 +27,19 @@ def request_multiappend(receiver_id, server_file_name, local_file_name):
 
 
 if __name__ == "__main__":
-    
+    print (sys.argv)
     if (len(sys.argv) % 2 != 0):
         print("incorrect argumnets")
 
     server_file = sys.argv[1]
-    file_name = sys.argv[2]
-
     num_files = (len(sys.argv) - 2) // 2
 
-    vm_id = sys.argv[2:num_files]
-    local_files = sys.argv[num_files:]
+    vm_id = sys.argv[2:num_files + 2]
+    local_files = sys.argv[num_files + 2:]
 
-
-
-    server_id = get_receiver_id_from_file(my_id, file_name)
-    res = request_append_file(server_id , file_name, local_file, "N")
-
-    for i in range(num_files):
-        request_multiappend(vm_id[i], file_name, local_files[i])
-
-    if (res < 0):
-         print("Append Failed")
-    else:
-        print("Append Completed")
+    print(vm_id)
+    print(local_files)
+    for i in range(len(local_files)):
+        request_multiappend(int(vm_id[i]), server_file, local_files[i])
 
 
