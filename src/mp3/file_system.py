@@ -130,25 +130,30 @@ def send_files_by_id(id_to_send, client_socket):
     my_files = ownership_list.get(machine_id)
     my_files_updated = []
     
+    print(f"my files: {my_files}")
     for file in my_files:
         
         file_hash = generate_sha1(file)
+        
         client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
         client_socket.sendall(file.encode())
+
         file_path = get_server_file_path(file)
         file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
+        
         client_socket.sendall(file_size)
         file_version = get_server_file_metadata(file)["version"]
-        client_socket.sendall(file_version)
+
+        client_socket.sendall(file_version.to_bytes(4, byteorder="little"))
         
         send_file(client_socket, file_path)  
         
-        if (in_range(file_hash, machine_id, id_to_send)):
+        if (in_range(file_hash, machine_id, id_to_send)): # belong to the new node
             ownership_list.increment_list(id_to_send, file)
         else:
-            my_files_updated.append(file)
+            my_files_updated.append(file) # still belong to me
 
-    ownership_list.add(machine_id, my_files_updated)
+    ownership_list.add(machine_id, my_files_updated) # remove files that now belong to the new node
         
 def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str):
 
@@ -338,13 +343,18 @@ def handle_failed(failed_nodes, member_list):
                 request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
 
 def handle_joined():
+
     if (len(member_list) <= 0): return
+
     mem_set = list(member_list)
     mem_set.sort()
+
     succesor = 0
     for i, id in enumerate(mem_set):
         if (id >= machine_id):
             succesor = i
+    
+    print(f"succesor: {mem_set[succesor]}")
     request_files_by_id(machine_id, mem_set[succesor])
     
     predecessor_1 = (succesor - 1) % len(member_list)
@@ -402,6 +412,8 @@ def request_files_by_id(from_id, to):
 
 def write_requested_files(sock):
 
+    print("HERE")
+
     while (1):
         
         more_files = sock.recv(1) # filename size
@@ -409,9 +421,10 @@ def write_requested_files(sock):
         if (more_files == b''): return
 
         filename_size = int.from_bytes(more_files, byteorder="little")
+        print(f"filename size: {filename_size}")
 
         filename = sock.recv(filename_size).decode()
-        print(f"sending filename: {filename} ...")
+        print(f"filename: {filename}")
 
         if (get_receiver_id_from_file(0, filename) != machine_id):
             ownership_list.increment_list(id_from_ip(sock.getpeername()[0]), filename)
@@ -419,18 +432,25 @@ def write_requested_files(sock):
             ownership_list.increment_list(machine_id, filename)
 
         file_content_size = int.from_bytes(sock.recv(8), byteorder="little")
+        print(f"file content size: {file_content_size}")
+
         file_version = int.from_bytes(sock.recv(4), byteorder="little")
+        print(f"file version: {file_version}")
+
         metadata = INIT_FILE_METADATA
         metadata["version"] = file_version
         write_server_file_metadata(filename, metadata)
 
         with open(get_server_file_path(filename), "ab") as file:
 
+            print("HERE 2")
+
             read = 0
 
             while (1):
                 
                 content = sock.recv(min(1024 * 1024, file_content_size - read))
+
                 read += len(content)
                 file.write(content)
 
@@ -464,12 +484,12 @@ def start_server(machine_id: int):
     sleep(7)
     
     global member_list
-    
     member_list = set(get_machines())
-    handle_joined()
 
     global ownership_list
     ownership_list = Dict(t=list) # int -> [str]
+
+    handle_joined()
     
     print("starting server...")
 
