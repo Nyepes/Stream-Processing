@@ -190,11 +190,12 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         send_files_by_id(int(file_name), client_socket)
     
     elif (mode == "Q"):
+        print("doing shit")
         server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
         local_file_name = client_socket.recv(file_length).decode('utf-8')
         
-        server_id = get_receiver_id_from_file(my_id, file_name)
+        server_id = get_receiver_id_from_file(machine_id, file_name)
         res = request_append_file(server_id , server_file, local_file_name, "N")
 
         # Multiappend receives a file_name to append to and a path to its local file
