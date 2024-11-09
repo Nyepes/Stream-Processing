@@ -12,7 +12,7 @@ def generate_sha1(input_string):
     """Generate a SHA-1 hash of the input string."""
     sha1_hash = hashlib.sha1()
     sha1_hash.update(input_string.encode('utf-8'))
-    return int(sha1_hash.hexdigest(), 16)
+    return int(sha1_hash.hexdigest(), 16) % 10 + 1 # Num between 1 and 10
 
 def read_file_to_socket(file_name, sock = None):
     try:
@@ -124,11 +124,32 @@ def get_receiver_id_from_file(my_id, file_name):
     return min(machines)
 
 def get_file_head(file_id):
+    
     machines = get_machines() + [id_from_ip(socket.gethostname())]
+    machines.sort()
+    
     for i, machine_id in enumerate(machines):
         if (machine_id >= file_id):
             return machines[i % len(machines)]
+    
     return min(machines)
+
+def get_replica_ids(file_id):
+    
+    machines = get_machines() + [id_from_ip(socket.gethostname())]
+    machines.sort()
+    
+    head = machines[0]
+    for i, machine_id in enumerate(machines):
+        if (machine_id >= file_id):
+            head = i 
+            break
+    
+    replicas = []
+    for i in range(REPLICATION_FACTOR):
+        replicas.append(machines[(head + i) % len(machines)])
+    
+    return replicas
     
 def get_server_file_path(filename):
     return f"src/mp3/fs/{filename}"

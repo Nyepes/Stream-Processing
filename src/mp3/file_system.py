@@ -42,8 +42,10 @@ def handle_merge(file_name, s, ip_address):
     data = memtable.get(file_name)
     file_version = memtable.get_file_version(file_name)
 
-    if file_name is None: file_version = 0
-    s.sendall(file_version.to_byte(4, byteorder="little"))
+    if file_version is None: 
+        file_version = 0
+
+    s.sendall(file_version.to_bytes(4, byteorder="little"))
 
     for chunk in data:
         if (not chunk): continue
@@ -96,7 +98,7 @@ def handle_create(file_name, socket):
         write_server_file_metadata(file_name, metadata)
 
         ownership = get_receiver_id_from_file(0, file_name)
-        ownership_list.append(ownership, file_name)
+        ownership_list.increment_list(ownership, file_name)
 
         socket.sendall("OK".encode())
     return
@@ -109,12 +111,13 @@ def in_range(start, end, val):
         return start < val or 0 <= val <= end
 
 def send_files_by_id(id_to_send, client_socket):
-    # hashes = get_files_hash()
+
     my_files = ownership_list.get(machine_id)
     my_files_updated = []
+    
     for file in my_files:
+        
         file_hash = generate_sha1(file)
-        h = file_hash % 10 + 1
         client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
         client_socket.sendall(file.encode())
         file_path = get_server_file_path(file)
@@ -122,109 +125,91 @@ def send_files_by_id(id_to_send, client_socket):
         client_socket.sendall(file_size)
         file_version = get_server_file_metadata(file_name)["version"]
         client_socket.sendall(file_version)
+        
         send_file(client_socket, file_path)  
-        if (in_range(h, machine_id, id_to_send)):
+        
+        if (in_range(file_hash, machine_id, id_to_send)):
             ownership_list.increment_list(id_to_send, file)
         else:
             my_files_updated.append(file)
 
     ownership_list.add(machine_id, my_files_updated)
         
-        # if (h <= id_to_send)  
-
-    # machines = get_machines() + [machine_id]
-    # machines.sort()
-
-    # predecessor = (machines.index(machine_id) - 1) % len(machines)
-    # predecessor_id = machines[predecessor]
-
-    # for file, hash in hashes.items():
-    #     h = hash % 10 + 1
-    #     print(f"{predecessor_id} < {h} <= {machine_id}")
-    #     if (in_range(predecessor_id, machine_id, h)):
-    #         file_path = get_server_file_path(file)
-    #         client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
-    #         client_socket.sendall(file.encode())
-    #         file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
-    #         client_socket.sendall(file_size)
-    #         file_version = get_server_file_metadata(file_name)["version"]
-    #         client_socket.sendall(file_version)
-    #         send_file(client_socket, file_path)    
-    #     if (in_range(file_id, machine_id, id_to_send)):
-    #         ownership_list.increment_list(id_to_send, file)
-    #         ownership_list.get()    
-    #     # if (file_id <= id_to_send <= machine_id): # TODO: Probably an error
-    #         # change ownership
 def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str):
 
     mode = client_socket.recv(1).decode('utf-8')
-    print(mode)
-    # File size represented with one bytes (max file size: 255)
     file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
-    print(file_length)
     file_name = client_socket.recv(file_length).decode('utf-8')
-    print(file_name)
 
     # GET
     if (mode == "G"):
-        print(memtable.get(file_name))
         file_version = int.from_bytes(client_socket.recv(4), byteorder="little")
         handle_get(file_name, client_socket, client_version = file_version)
+    
     # MERGE
     elif (mode == "M"):
         handle_merge(file_name, client_socket, ip_address)
+    
     # Append
     elif (mode == "A"):
         handle_append(file_name, client_socket)
+   
     # Create
     elif (mode == "C"):
         handle_create(file_name, client_socket)
+    
     # Start Merge
     elif (mode == "P"):
         merge_file(file_name)
     
     elif (mode == "J"):
         member_list = get_machines()
-        print(member_list)
-        # file_name = from_id
         send_files_by_id(int(file_name), client_socket)
+
     client_socket.close()
 
-def request_merge(machine_id, file_name):
+def request_merge(id, file_name):
+    
     try:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.settimeout(RECEIVE_TIMEOUT)
-        server.connect((HOSTS[machine_id - 1], FILE_SYSTEM_PORT))
+        server.connect((HOSTS[id - 1], FILE_SYSTEM_PORT))
         length = len(file_name).to_bytes(1, byteorder='little')
         server.sendall(b"M" + length + file_name.encode())
         return server
     except (ConnectionRefusedError, socket.timeout):
-        print("Connection Refucse")
+        print("Connection Refused")
         return -1
     except (OSError):
         print("OS ERROR")
         return -2
 
 def merge_file(file_name):
-    file_id = generate_sha1(file_name)
-    # At 0 we have id 0 mem table at 1 we have 1 memtable and at 2 we have 2 memtable
+    
+    file_id = generate_sha1(file_name) # Num between 1 and 10
+
     buffer = [""] * (REPLICATION_FACTOR - 1)
     sockets = []
 
-    file_head = get_file_head(file_id % 10 + 1)
+    replicas = get_replica_ids(file_id)
 
-    for i in range(min(REPLICATION_FACTOR, len(member_list))):
-        replica_id = (file_head + i) % len(member_list) + 1
-        if (machine_id == replica_id): 
+    for replica_id in replicas:
+
+        if (machine_id == replica_id):
             continue
-        print(f"{replica_id} rid")
+
+        print(f"Replica id: {replica_id}")
         sockets.append(request_merge(replica_id, file_name))
 
     max_version = memtable.get_file_version(file_name)
+
     if (max_version is None):
         max_version = get_server_file_metadata(file_name)["version"]
+
     for i, s in enumerate(sockets):
+        
         max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))
+        
         while (1):
             data = s.recv(1024 * 1024)
             if (data == b'' or not data): break
@@ -386,18 +371,22 @@ def start_server(machine_id: int):
     
     global memtable
     memtable = MemTable()
-
-    global member_list
+    
     sleep(7)
-    ownership_list = Dict(t=list) # int -> [str]
+    
+    global member_list
     member_list = set(get_machines())
     handle_joined()
+
+    global ownership_list
+    ownership_list = Dict(t=list) # int -> [str]
     
-    print("ok")
+    print("starting server...")
+
     while True:
         try:
             client_socket, ip_address = server.accept()
-        except:
+        except (ConnectionRefusedError, socket.timeout):
             check_memlist()
             continue
 
@@ -410,5 +399,5 @@ def start_server(machine_id: int):
         client_handler.daemon = True
         client_handler.start()
 
-start_server(machine_id)
-
+if __name__ == "__main__":
+    start_server(machine_id)
