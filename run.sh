@@ -79,6 +79,7 @@ elif [ "$1" == "build" ]; then
   build
 elif [ "$1" == "start" ]; then
   shift
+  killall "python"
   start "$@"
 elif [ "$1" == "list_mem" ]; then
   members "$@"
@@ -116,6 +117,10 @@ elif [ "$1" == "getfromreplica" ]; then
   python src/mp3/bin/get_from_replica.py "$@"
 elif [ "$1" == "list_mem_ids" ]; then
   members "$@"
+elif [ "$1" == "reset_fs" ]; then
+  shift
+  rm -r src/mp3/fs
+  mkdir -p src/mp3/fs/metadata
 else
   echo "$1"
   echo "Command not found"
