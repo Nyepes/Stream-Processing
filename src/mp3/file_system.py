@@ -109,7 +109,7 @@ def handle_create(file_name, socket):
 
         ownership = get_receiver_id_from_file(0, file_name)
         ownership_list.increment_list(ownership, file_name)
-        print(f"Ownership: {ownership}")
+        print(f"Ownership: {ownership_list.items()}")
 
         socket.sendall("OK".encode())
 
@@ -147,6 +147,8 @@ def send_files_by_id(id_to_send, client_socket):
         
 def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str):
 
+    global member_list
+
     mode = client_socket.recv(1).decode('utf-8')
     file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
     file_name = client_socket.recv(file_length).decode('utf-8')
@@ -173,7 +175,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         merge_file(file_name)
     
     elif (mode == "J"):
-        member_list = get_machines()
+        member_list = get_machines() # Update member list as new node joined
         send_files_by_id(int(file_name), client_socket)
 
     client_socket.close()
@@ -181,15 +183,22 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
 def request_merge(id, file_name):
     
     try:
+        
+        # init connection
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.settimeout(RECEIVE_TIMEOUT)
         server.connect((HOSTS[id - 1], FILE_SYSTEM_PORT))
+        
+        # create and send payload
         length = len(file_name).to_bytes(1, byteorder='little')
         server.sendall(b"M" + length + file_name.encode())
-        return server
+        
+        return server # return socket
+    
     except (ConnectionRefusedError, socket.timeout):
         print("Connection Refused")
         return -1
+
     except (OSError):
         print("OS ERROR")
         return -2
@@ -209,7 +218,10 @@ def merge_file(file_name):
             continue
 
         print(f"Replica id: {replica_id}")
-        sockets.append(request_merge(replica_id, file_name))
+
+        replica_socket = request_merge(replica_id, file_name)
+        if (replica_socket != -1 and replica_socket != -2):
+            sockets.append(replica_socket)
 
     max_version = memtable.get_file_version(file_name)
 
@@ -223,25 +235,33 @@ def merge_file(file_name):
         while (1):
             data = s.recv(1024 * 1024)
             if (data == b'' or not data): break
+            print(f"data: {data}")
             buffer[i] += data.decode('utf-8')
-
-    print(buffer)
 
     new_version = max_version + 1
     for i, s in enumerate(sockets):
-        for chunk in memtable.get(file_name):
-            s.sendall(chunk)
-        for chunk in buffer:
+        
+        for chunk in memtable.get(file_name): # head replica
+            if not chunk: continue
+            s.sendall(chunk + "\n".encode())
+        
+        for chunk in buffer: # other replicas
             s.sendall(new_version.to_bytes(4, byteorder="little"))
-            s.sendall(chunk.encode())
+            if not chunk: continue
+            s.sendall(chunk.encode() + "\n".encode())
     
-        s.shutdown(socket.SHUT_WR)
+        s.shutdown(socket.SHUT_WR) # close current socket
 
     with open(get_server_file_path(file_name), "a") as file:
+        
         for chunk in memtable.get(file_name):
+            if not chunk: continue
             file.write(chunk.decode('utf-8'))
+        
         for chunk in buffer:
+            if not chunk: continue
             file.write(chunk)
+
         file.write('\n')
 
     memtable.set_file_version(file_name, max_version + 1)
@@ -250,25 +270,34 @@ def merge_file(file_name):
     write_server_file_metadata(file_name, metadata)
     memtable.clear(file_name)
 
-def handle_failed(failed_nodes):
+def handle_failed(failed_nodes, member_list):
 
-    machines_sorted = get_machines() + [machine_id]
+    # Handle failed 
+
+    machines_sorted = list(member_list) + [machine_id]
     machines_sorted.sort()
+    
     my_idx = machines_sorted.index(machine_id)
     prev_idx = (my_idx - 1) % len(machines_sorted)
     prev_id = machines_sorted[prev_idx]
+    
+    # Head replica fails
 
     slave_files = []
     for node in failed_nodes:
 
         if node == prev_id:
-            # You are the owner now!
-            slave_files += ownership_list.get(node)
-            # TODO: If two failed with same machines_sorted it stops working
+            
+            print(f"New owner of node {node} files")
+            slave_files += ownership_list.get(node) # TODO: If two failed with same machines_sorted it stops working
+
     for file_name in slave_files:
+        
         receiver_id = machines_sorted[(my_idx + REPLICATION_FACTOR - 1) % len(machines_sorted)]
         request_create_file(receiver_id, file_name)
         request_append_file(receiver_id, file_name, get_server_file_path(file_name))
+
+    # Other replica fails
 
 
 def handle_joined():
@@ -298,24 +327,35 @@ def get_files_hash():
     return file_hashes
 
 def check_memlist():
+
     global member_list
+
+    member_list = set(member_list)
     new_members = set(get_machines())
     
     failed = member_list - new_members
+    print(f"failed: {failed}")
 
-    handle_failed(failed)
+    if (len(failed) > 0):
+        handle_failed(failed, member_list)
 
     member_list = new_members
 
 def request_files_by_id(from_id, to):
+    
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[to - 1], FILE_SYSTEM_PORT))
+            
             val = 1
             length = val.to_bytes(1, byteorder='little')
+            
             server.sendall(b"J" + length + (str(from_id)).encode())
+            
             write_requested_files(server)
+
     except (ConnectionRefusedError, socket.timeout):
         return -1
     except (OSError):
@@ -324,6 +364,7 @@ def request_files_by_id(from_id, to):
 def write_requested_files(sock):
 
     while (1):
+        
         more_files = sock.recv(1) # filename size
 
         if (more_files == b''): return
@@ -384,6 +425,7 @@ def start_server(machine_id: int):
     sleep(7)
     
     global member_list
+    
     member_list = set(get_machines())
     handle_joined()
 

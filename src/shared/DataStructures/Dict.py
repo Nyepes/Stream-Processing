@@ -21,5 +21,8 @@ class Dict:
     def delete(self, key):
         with self.lock:
             del self.dict[key]
+    def items(self):
+        with self.lock:
+            return list(self.dict.items())
 
     
