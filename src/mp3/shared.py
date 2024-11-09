@@ -84,7 +84,7 @@ def request_create_file(machine_to_request, file_name):
     
     return 0
 
-def request_append_file(receiver_id, server_file_name, local_file_name):
+def request_append_file(receiver_id, server_file_name, local_file_name, status):
     
     try:    
         
@@ -94,9 +94,9 @@ def request_append_file(receiver_id, server_file_name, local_file_name):
             server.settimeout(RECEIVE_TIMEOUT)
             server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
             
-            # Send payload (A + length of server_file_name + server_file_name)
+            # Send payload (A + length of server_file_name + server_file_name + status)
             length = len(server_file_name).to_bytes(1, byteorder='little')
-            server.sendall(b"A" + length + server_file_name.encode())
+            server.sendall(b"A" + length + server_file_name.encode() + status.encode())
             
             # Send file
             send_file(server, local_file_name)

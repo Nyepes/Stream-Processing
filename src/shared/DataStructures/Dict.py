@@ -10,7 +10,9 @@ class Dict:
             self.dict[key] = val
     def increment_list(self, key, val):
         with self.lock:
-            self.dict[key] += [val]
+            if type(val) != list:
+                val = [val]
+            self.dict[key] += val
     def get(self, key):
         with self.lock:
             return self.dict[key].copy()
@@ -20,7 +22,8 @@ class Dict:
             self.dict[key] += 1
     def delete(self, key):
         with self.lock:
-            del self.dict[key]
+            if key in self.dict:
+                del self.dict[key]
     def items(self):
         with self.lock:
             return list(self.dict.items())

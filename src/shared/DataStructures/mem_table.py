@@ -6,8 +6,8 @@ class MemTable:
         self.data = defaultdict(list)
         self.file_versions = defaultdict(int)
 
-    def add(self, filename, content):
-        self.data[filename].append(content)
+    def add(self, filename, content, status):
+        self.data[filename].append((content, status))
         return 1
 
     def get_file_version(self, file_name):
@@ -23,5 +23,8 @@ class MemTable:
     
     def clear(self, file_name):
         self.data[file_name] = []
+
+    def items(self):
+        return self.data.items()
     
     ## TODO: On 10 return

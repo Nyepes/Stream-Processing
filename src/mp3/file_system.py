@@ -34,7 +34,7 @@ def handle_get(file_name, socket, client_version = 0):
     send_file(socket, get_server_file_path(file_name), file_version)
     in_memory = memtable.get(file_name)
     
-    for chunk in in_memory:
+    for chunk, _ in in_memory:
         if (chunk is None):
             continue
         socket.sendall(chunk)
@@ -49,15 +49,21 @@ def handle_merge(file_name, s, ip_address):
 
     s.sendall(file_version.to_bytes(4, byteorder="little")) # send file version
 
-    for chunk in data: # send memtable data
-        if (not chunk): continue
-        s.sendall(chunk)
+    for chunk, status in data: # send memtable data
+        if not chunk: continue
+        s.sendall(len(chunk).to_bytes(8, byteorder="little") + chunk + status.encode())
     
     s.shutdown(socket.SHUT_WR) # close write end
 
     new_version = int.from_bytes(s.recv(4), byteorder="little") # recieve new version
-
+    
     with open(get_server_file_path(file_name), "a") as f: # append new data
+
+        for chunk, status in data:
+            print(chunk, status)
+            if not chunk or status == "N": continue
+            f.write(chunk[:-1].decode('utf-8'))
+            f.write("\n")
         
         while (1):
             data = s.recv(1024 * 1024)
@@ -70,21 +76,18 @@ def handle_merge(file_name, s, ip_address):
     write_server_file_metadata(file_name, metadata)
     memtable.clear(file_name)
 
-def handle_append(file_name, socket): 
+def handle_append(file_name, socket, status): 
+    
     while (1):
-        print("loopy")
         data = socket.recv(1024 * 1024)
-        print(data)
         if (data == b''): break
-        memtable.add(file_name, data)
+        memtable.add(file_name, data, status)
 
     version = memtable.get_file_version(file_name)
-    # print("v1: " + version)
+
     if (version is None):
-        print("not found on memtable")
         version = get_server_file_metadata(file_name)["version"]
     
-    print(version)
     memtable.set_file_version(file_name, version + 1)
 
     socket.sendall("OK".encode())
@@ -135,7 +138,7 @@ def send_files_by_id(id_to_send, client_socket):
         file_path = get_server_file_path(file)
         file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
         client_socket.sendall(file_size)
-        file_version = get_server_file_metadata(file_name)["version"]
+        file_version = get_server_file_metadata(file)["version"]
         client_socket.sendall(file_version)
         
         send_file(client_socket, file_path)  
@@ -166,7 +169,8 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     
     # Append
     elif (mode == "A"):
-        handle_append(file_name, client_socket)
+        status = client_socket.recv(1).decode('utf-8')
+        handle_append(file_name, client_socket, status)
    
     # Create
     elif (mode == "C"):
@@ -174,7 +178,6 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     
     # Start Merge
     elif (mode == "P"):
-        print("HERE")
         merge_file(file_name)
     
     elif (mode == "J"):
@@ -210,7 +213,7 @@ def merge_file(file_name):
     
     file_id = generate_sha1(file_name) # Num between 1 and 10
 
-    buffer = [""] * (REPLICATION_FACTOR - 1)
+    buffer = [] * (REPLICATION_FACTOR - 1)
     sockets = []
 
     replicas = get_replica_ids(file_id)
@@ -236,37 +239,43 @@ def merge_file(file_name):
         max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little")) # recieve version and update
         
         while (1): # recieve memtable data
-            data = s.recv(1024 * 1024)
-            if (data == b'' or not data): break
-            buffer[i] += data.decode('utf-8')
-
+            
+            read = s.recv(8)
+            
+            if (read == b''): break
+            
+            chunk_size = int.from_bytes(read, byteorder="little")
+            content = s.recv(chunk_size)
+            status = s.recv(1)
+            
+            buffer.append((content.decode('utf-8'), status.decode('utf-8')))
+            
     new_version = max_version + 1
-    for i, s in enumerate(sockets):
+    for s in sockets:
 
         s.sendall(new_version.to_bytes(4, byteorder="little")) # send new version
         
-        for chunk in memtable.get(file_name): # head replica
-            if not chunk: continue
-            s.sendall(chunk + "\n".encode())
+        for chunk, status in memtable.get(file_name): # head replica
+            if not chunk or status == "F": continue
+            s.sendall(chunk[:-1] + "\n".encode())
         
-        for chunk in buffer: # other replicas
-            # s.sendall(new_version.to_bytes(4, byteorder="little"))
-            if not chunk: continue
+        for chunk, status in buffer: # other replicas
+            if not chunk or status == "F": continue
             s.sendall(chunk.encode() + "\n".encode())
     
         s.shutdown(socket.SHUT_WR) # close current socket
 
+    wrote = False
     with open(get_server_file_path(file_name), "a") as file:
         
-        for chunk in memtable.get(file_name):
-            if not chunk: continue
+        for chunk, status in memtable.get(file_name):
+            if not chunk or status == "F": continue
             file.write(chunk.decode('utf-8'))
-        
-        for chunk in buffer:
-            if not chunk: continue
-            file.write(chunk)
 
-        file.write('\n')
+        for chunk, status in buffer:
+            if not chunk or status == "F": continue
+            file.write(chunk)
+            file.write('\n')
 
     memtable.set_file_version(file_name, max_version + 1)
     metadata = get_server_file_metadata(file_name)
@@ -292,17 +301,22 @@ def handle_failed(failed_nodes, member_list):
 
         if node == prev_id:
             
-            print(f"New owner of node {node} files")
-            slave_files += ownership_list.get(node) # TODO: If two failed with same machines_sorted it stops working
+            slave_files += ownership_list.get(node)
+            
+        idx = machines_sorted.index(node)
+        new_owner = machines_sorted[(idx + 1) % len(machines_sorted)]
+        print(ownership_list.get(node))
+        ownership_list.increment_list(new_owner, ownership_list.get(node))
+        ownership_list.delete(node)
 
     for file_name in slave_files:
         
         receiver_id = machines_sorted[(my_idx + REPLICATION_FACTOR - 1) % len(machines_sorted)]
+        
         request_create_file(receiver_id, file_name)
-        request_append_file(receiver_id, file_name, get_server_file_path(file_name))
+        request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
 
     # Other replica fails
-
 
 def handle_joined():
     if (len(member_list) <= 0): return
@@ -339,6 +353,8 @@ def check_memlist():
     
     failed = member_list - new_members
     print(f"failed: {failed}")
+    print(f"ownership: {ownership_list.items()}")
+    print(f"memtable: {memtable.items()}")
 
     if (len(failed) > 0):
         handle_failed(failed, member_list)

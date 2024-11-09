@@ -34,7 +34,7 @@ if __name__ == "__main__":
         exit(1)
     
     receiver_id = get_receiver_id_from_file(my_id, server_file_name) # This is replica I'm going to send the actual file content to
-    res = request_append_file(receiver_id, server_file_name, file_name)
+    res = request_append_file(receiver_id, server_file_name, file_name, "N")
     
     if (res < 0):
         print("Failed Creating File")
