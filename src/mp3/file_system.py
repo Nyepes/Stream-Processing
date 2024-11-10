@@ -385,7 +385,7 @@ def handle_joined(joined, member_set):
 
     print("joined", joined)
 
-    machines_sorted = member_set + [machine_id] + list(joined)
+    machines_sorted = list(member_set) + [machine_id] + list(joined)
     machines_sorted.sort()
 
     my_idx = machines_sorted.index(machine_id)
