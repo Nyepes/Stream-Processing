@@ -125,8 +125,8 @@ def in_range(start, end, val):
     else: # loop around ring
         return start < val or 0 <= val <= end
 
-def send_files_by_id(id_to_send, client_socket):
-
+def send_files_by_id(id_to_send, client_socket, succ):
+    
     my_files = ownership_list.get(machine_id)
     my_files_updated = []
     
@@ -135,18 +135,19 @@ def send_files_by_id(id_to_send, client_socket):
         
         file_hash = generate_sha1(file)
         
-        client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
-        client_socket.sendall(file.encode())
+        if (succ and in_range(file_hash, machine_id, id_to_send) or not succ):
+            client_socket.sendall(len(file).to_bytes(1, byteorder="little"))
+            client_socket.sendall(file.encode())
 
-        file_path = get_server_file_path(file)
-        file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
-        
-        client_socket.sendall(file_size)
-        file_version = get_server_file_metadata(file)["version"]
+            file_path = get_server_file_path(file)
+            file_size = os.path.getsize(file_path).to_bytes(8, byteorder="little")
+            
+            client_socket.sendall(file_size)
+            file_version = get_server_file_metadata(file)["version"]
 
-        client_socket.sendall(file_version.to_bytes(4, byteorder="little"))
-        
-        send_file(client_socket, file_path)  
+            client_socket.sendall(file_version.to_bytes(4, byteorder="little"))
+            
+            send_file(client_socket, file_path)  
         
         if (in_range(file_hash, machine_id, id_to_send)): # belong to the new node
             ownership_list.increment_list(id_to_send, file)
@@ -186,11 +187,14 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         merge_file(file_name)
     
     elif (mode == "J"):
+        ip_address = socket.gethostbyaddr(ip_address[0])[0]
+
         member_list = get_machines() # Update member list as new node joined
-        send_files_by_id(int(file_name), client_socket)
+        node_id = id_from_ip(ip_address)
+        succ = machine_id > node_id or in_range(node_id, machine_id, 0)
+        send_files_by_id(int(file_name), client_socket, succ)
     
     elif (mode == "Q"):
-        print("doing shit")
         server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
         local_file_name = client_socket.recv(file_length).decode('utf-8')
@@ -354,7 +358,7 @@ def handle_failed(failed_nodes, member_list):
                 request_create_file(receiver_id, file_name)
                 request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
 
-def handle_joined():
+def handle_joined_initial():
 
     if (len(member_list) <= 0): return
 
@@ -377,6 +381,69 @@ def handle_joined():
         predecessor_2 = (succesor - 2) % len(member_list)
         request_files_by_id(machine_id, mem_set[predecessor_2])
 
+def handle_joined(joined, member_set): 
+
+    print("joined", joined)
+
+    machines_sorted = member_set + [machine_id] + list(joined)
+    machines_sorted.sort()
+
+    my_idx = machines_sorted.index(machine_id)
+
+    # POST JOIN NODE
+
+    for node in joined:
+
+        node_idx = machines_sorted.index(node)
+        post_affected_nodes = [machines_sorted[(node_idx + 1 + i) % len(machines_sorted)] for i in range(REPLICATION_FACTOR)]
+
+        if machine_id in post_affected_nodes:
+
+            if machine_id == post_affected_nodes[-1]:
+                prev_head = machines_sorted[(my_idx - REPLICATION_FACTOR + 1) % len(machines_sorted)]
+            else:
+                prev_head = machines_sorted[(my_idx - REPLICATION_FACTOR) % len(machines_sorted)]
+                
+            print("prev head", prev_head)
+            prev_node = machines_sorted[(my_idx - 1) % len(machines_sorted)]
+            print("prev node", prev_node)
+            
+            files_to_send = ownership_list.get(prev_head)
+            ownership_list.delete(prev_head)
+
+            print(files_to_send)
+            for file_name in files_to_send:
+
+                if prev_node == node:
+                    request_create_file(prev_node, file_name)
+
+                file = open(get_server_file_path(file_name), "wb")
+                for chunk, status in memtable.get(file_name):
+                    if status == "N":
+                        file.write(chunk)
+                
+                file.close()
+
+                memtable.delete(file_name)
+
+                request_append_file(prev_node, file_name, get_server_file_path(file_name), "N")
+
+                os.remove(get_server_file_path(file_name))
+
+    # PRE JOIN NODE
+   
+    for node in joined:
+
+        node_idx = machines_sorted.index(node)
+        pre_affected_nodes = [machines_sorted[(node_idx - 1 - i) % len(machines_sorted)] for i in range(REPLICATION_FACTOR - 1)]
+
+        if machine_id in pre_affected_nodes:
+
+            for file_name in ownership_list.get(machine_id):
+                
+                request_create_file(node, file_name)
+                request_append_file(node, file_name, get_server_file_path(file_name), "N")
+
 def check_memlist():
 
     global member_list
@@ -385,12 +452,15 @@ def check_memlist():
     new_members = set(get_machines())
     
     failed = member_list - new_members
+    joined = new_members - member_list
     print(f"failed: {failed}")
     print(f"ownership: {ownership_list.items()}")
     print(f"memtable: {memtable.items()}")
 
     if (len(failed) > 0):
         handle_failed(failed, member_list)
+    if (len(joined) > 0):
+        handle_joined(joined, member_list)
 
     member_list = new_members
 
@@ -493,7 +563,7 @@ def start_server(machine_id: int):
     global ownership_list
     ownership_list = Dict(t=list) # int -> [str]
 
-    handle_joined()
+    handle_joined_initial()
     
     print("starting server...")
 
