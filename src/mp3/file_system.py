@@ -212,8 +212,13 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     elif (mode == "Q"):
         server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
-        local_file_name = client_socket.recv(file_length).decode('utf-8')
         
+        print(local_file_length)
+        local_file_name = client_socket.recv(local_file_length).decode('utf-8')
+
+        print(server_file)
+        print(local_file_name)
+
         server_id = get_receiver_id_from_file(machine_id, file_name)
         res = request_append_file(server_id , server_file, local_file_name, "N")
 
