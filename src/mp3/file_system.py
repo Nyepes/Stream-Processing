@@ -205,8 +205,8 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         node_id = id_from_ip(ip_address)
         print(f"node_id: {node_id}")
 
-        print(nodes[nodes.index(node_id) + 1])
-        succ = nodes[nodes.index(node_id) + 1] == machine_id
+        print(nodes[(nodes.index(node_id) + 1) % len(machines)])
+        succ = nodes[(nodes.index(node_id) + 1) % len(machines)] == machine_id
         
         send_files_by_id(int(file_name), client_socket, succ)
     
