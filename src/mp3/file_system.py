@@ -473,7 +473,9 @@ def handle_joined(joined, member_set):
             if not flag:
                 updated_files[owner].append(file)
             else:
-                new_files = ownership_list.get(owner).remove(file)
+                new_files = ownership_list.get(owner)
+                if file in new_files:
+                    new_files.remove(file)
                 ownership_list.add(owner, new_files if new_files else [])
 
     print(f"updated_files: {updated_files}")
