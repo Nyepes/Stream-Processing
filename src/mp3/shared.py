@@ -230,7 +230,6 @@ def get_client_file_metadata(filename):
             data = json.load(f)
         return data
     except:
-        print("error")
         return INIT_FILE_METADATA
 
 def write_client_file_metadata(filename, data):
