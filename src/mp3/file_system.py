@@ -102,7 +102,7 @@ def handle_create(file_name, socket):
         socket.sendall("ERROR".encode())
     
     else:
-       
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             f.write("")
         
@@ -376,14 +376,6 @@ def handle_joined():
     if (len(mem_set) >= 2):
         predecessor_2 = (succesor - 2) % len(member_list)
         request_files_by_id(machine_id, mem_set[predecessor_2])
-
-def get_files_hash():
-    file_hashes = {}
-    for filename in os.listdir("src/mp3/fs"):
-        file_path = get_server_file_path(filename)
-        if os.path.isfile(file_path):  # Only process files, not directories
-            file_hashes[filename] = generate_sha1(filename)
-    return file_hashes
 
 def check_memlist():
 

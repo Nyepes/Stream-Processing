@@ -1,6 +1,7 @@
 import hashlib 
 import socket
 import json
+import os
 
 from src.shared.constants import HOSTS, FILE_SYSTEM_PORT, RECEIVE_TIMEOUT
 from src.shared.shared import get_machines
@@ -214,8 +215,10 @@ def get_server_file_metadata(filename):
 
 def write_server_file_metadata(filename, data):
     metadata_file_path = f"metadata/{filename}"
+    file_path = get_server_file_path(metadata_file_path)
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
     try:
-        with open(get_server_file_path(metadata_file_path), "w") as f:
+        with open(file_path, "w") as f:
             data = json.dump(data, f)
     except:
         return -1

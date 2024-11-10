@@ -26,5 +26,3 @@ class MemTable:
 
     def items(self):
         return self.data.items()
-    
-    ## TODO: On 10 return
