@@ -118,6 +118,32 @@ def request_append_file(receiver_id, server_file_name, local_file_name, status):
     
     return 0
 
+def request_merge_file(receiver_id, server_file_name):
+    try:    
+        
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            
+            # Initialize connection
+            server.settimeout(RECEIVE_TIMEOUT)
+            server.connect((HOSTS[receiver_id - 1], FILE_SYSTEM_PORT))
+            
+            # Payload
+            length = len(server_file_name).to_bytes(1, byteorder='little')
+            server.sendall(b"P" + length + server_file_name.encode())
+
+            # Response
+            data = server.recv(BUFFER_SIZE).decode("utf-8")
+            
+            if (data == b'' or data == "ERROR"): # Expected OK
+                return -1   
+    
+    except (ConnectionRefusedError, socket.timeout):
+        return -1
+    except (OSError):
+        return -2
+    
+    return 0
+
 def send_file(receiver_socket, file_name, file_version=None):
     try:
         print("sending")
