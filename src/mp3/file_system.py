@@ -63,8 +63,7 @@ def handle_merge(file_name, s, ip_address):
         for chunk, status in data:
             print(chunk, status)
             if not chunk or status == "N": continue
-            f.write(chunk[:-1].decode('utf-8'))
-            f.write("\n")
+            f.write(chunk.decode('utf-8'))
         
         while (1):
             data = s.recv(1024 * 1024)
@@ -294,11 +293,11 @@ def merge_file(file_name):
         
         for chunk, status in memtable.get(file_name): # head replica
             if not chunk or status == "F": continue
-            s.sendall(chunk + "\n".encode()) # REVISE chunk[:-1]
+            s.sendall(chunk) # REVISE chunk[:-1]
         
         for chunk, status in buffer: # other replicas
             if not chunk or status == "F": continue
-            s.sendall(chunk.encode() + "\n".encode())
+            s.sendall(chunk.encode())
     
         s.shutdown(socket.SHUT_WR) # close current socket
 
@@ -312,7 +311,6 @@ def merge_file(file_name):
         for chunk, status in buffer:
             if not chunk or status == "F": continue
             file.write(chunk)
-            file.write('\n')
 
     memtable.set_file_version(file_name, max_version + 1)
     metadata = get_server_file_metadata(file_name)
