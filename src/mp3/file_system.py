@@ -4,6 +4,7 @@ import socket
 import sys
 import os
 from time import sleep
+from datetime import datetime
 
 from src.shared.constants import FILE_SYSTEM_PORT, HOSTS, MAX_CLIENTS, RECEIVE_TIMEOUT
 from src.shared.DataStructures.mem_table import MemTable
@@ -213,11 +214,8 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
         
-        print(local_file_length)
         local_file_name = client_socket.recv(local_file_length).decode('utf-8')
 
-        print(server_file)
-        print(local_file_name)
 
         server_id = get_receiver_id_from_file(machine_id, file_name)
         res = request_append_file(server_id , server_file, local_file_name, "N")
@@ -324,7 +322,7 @@ def merge_file(file_name):
     memtable.clear(file_name)
 
 def handle_failed(failed_nodes, member_list):
-
+    time_init = datetime.now()
     # Handle failed 
 
     machines_sorted = list(member_list) + [machine_id]
@@ -376,6 +374,8 @@ def handle_failed(failed_nodes, member_list):
                 
                 request_create_file(receiver_id, file_name)
                 request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
+    time_end = datetime.now()
+    print(f"start: {time_init} time_end: {time_end}")
 
 def handle_joined_initial():
 

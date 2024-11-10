@@ -81,6 +81,8 @@ elif [ "$1" == "start" ]; then
   shift
   rm -r src/mp3/fs
   mkdir -p src/mp3/fs/metadata
+  rm -r src/mp3/local_cache
+  mkdir -p src/mp3/local_cache/metadata
   killall "python"
   start "$@"
 elif [ "$1" == "list_mem" ]; then
