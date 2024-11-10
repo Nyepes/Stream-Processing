@@ -3,3 +3,7 @@ NUM_MEMBERS = 10
 REPLICATION_FACTOR = 3
 
 INIT_FILE_METADATA = {"version": 0}
+
+CACHE_PATH = "src/mp3/local_cache"
+
+MAX_CACHE_FILES = 1
