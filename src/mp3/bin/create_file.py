@@ -29,11 +29,13 @@ if __name__ == "__main__":
     for j in range(min(REPLICATION_FACTOR, len(machines))):
         res += request_create_file(machines[(i + j) % len(machines)] , server_file_name) # Creates empty file on all replicas
     
+    # server_id = get_receiver_id_from_file(0, file_name)
     if (res != 0): # If any of the replicas already has the file, exit
         print("File already Created")
         exit(1)
     
     receiver_id = get_receiver_id_from_file(my_id, server_file_name) # This is replica I'm going to send the actual file content to
+    print(f"append to: {receiver_id}")
     res = request_append_file(receiver_id, server_file_name, file_name, "N")
     
     if (res < 0):

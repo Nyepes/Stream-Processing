@@ -15,7 +15,9 @@ import glob
 def remove_oldest_file():
     files = glob.glob(os.path.join(CACHE_PATH, '*'))
     oldest_file = min(files, key=os.path.getatime)
+    print(oldest_file)
     os.remove(oldest_file)
+    os.remove(get_client_file_path(f"metadata/{os.path.basename(oldest_file)}"))
 
 def get_machines():
     machines = []
@@ -32,13 +34,16 @@ if __name__ == "__main__":
     output_file = sys.argv[2]
     
     server_id = get_receiver_id_from_file(my_id, file_name)
+
     file_version = get_client_file_metadata(file_name)["version"]
+    print(f"getting from: {server_id}")
     res = request_file(server_id, file_name, get_client_file_path(output_file), version = file_version)
+    
     version = INIT_FILE_METADATA
     version["version"] = res
     write_client_file_metadata(output_file,version)
-    num_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
-    if (num_files > MAX_CACHE_FILES)
+    num_files = len([f for f in os.listdir(CACHE_PATH) if os.path.isfile(os.path.join(CACHE_PATH, f))])
+    if (num_files > MAX_CACHE_FILES):
         remove_oldest_file()
     if (res >= 0):
         print ("File received")
