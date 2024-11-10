@@ -24,7 +24,8 @@ class MemTable:
     def clear(self, file_name):
         self.data[file_name] = []
 
+    def delete(self, file_name):
+        del self.data[file_name]
+        
     def items(self):
         return self.data.items()
-    
-    ## TODO: On 10 return
