@@ -4,12 +4,18 @@ import socket
 
 from src.shared.constants import HOSTS
 from src.mp3.shared import generate_sha1, request_file, id_from_ip, get_receiver_id_from_file, get_client_file_metadata, get_client_file_path, write_client_file_metadata
-from src.mp3.constants import INIT_FILE_METADATA
+from src.mp3.constants import INIT_FILE_METADATA, CACHE_PATH, MAX_CACHE_FILES
 """
 Script to run when calling ./run.sh list_mem
 """
 
+import os
+import glob
 
+def remove_oldest_file():
+    files = glob.glob(os.path.join(CACHE_PATH, '*'))
+    oldest_file = min(files, key=os.path.getatime)
+    os.remove(oldest_file)
 
 def get_machines():
     machines = []
@@ -27,14 +33,13 @@ if __name__ == "__main__":
     
     server_id = get_receiver_id_from_file(my_id, file_name)
     file_version = get_client_file_metadata(file_name)["version"]
-    print("f")
-    print(file_version)
     res = request_file(server_id, file_name, get_client_file_path(output_file), version = file_version)
-    print(res)
     version = INIT_FILE_METADATA
     version["version"] = res
     write_client_file_metadata(output_file,version)
-    
+    num_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
+    if (num_files > MAX_CACHE_FILES)
+        remove_oldest_file()
     if (res >= 0):
         print ("File received")
     else:
