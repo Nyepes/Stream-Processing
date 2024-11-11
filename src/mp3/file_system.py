@@ -27,7 +27,7 @@ def handle_get(file_name, socket, client_version = 0):
     if (file_version is None):
         file_version = get_server_file_metadata(file_name)["version"]
     
-    print(f"versions {client_version} {file_version}")
+    # print(f"versions {client_version} {file_version}")
     
     if (client_version == file_version):
         socket.sendall(client_version.to_bytes(4, byteorder="little"))
@@ -62,7 +62,7 @@ def handle_merge(file_name, s, ip_address):
     with open(get_server_file_path(file_name), "a") as f: # append new data
 
         for chunk, status in data:
-            print(chunk, status)
+            # print(chunk, status)
             if not chunk or status == "N": continue
             f.write(chunk.decode('utf-8'))
         
@@ -115,7 +115,7 @@ def handle_create(file_name, socket):
 
         ownership = get_receiver_id_from_file(0, file_name)
         ownership_list.increment_list(ownership, file_name)
-        print(f"Ownership: {ownership_list.items()}")
+        # print(f"Ownership: {ownership_list.items()}")
 
         socket.sendall("OK".encode())
 
@@ -128,7 +128,7 @@ def in_range(start, end, val):
 
 def send_files_by_id(id_to_send, client_socket, succ):
 
-    print(f"succ: {succ}")
+    # print(f"succ: {succ}")
     
     my_files = ownership_list.get(machine_id)
     my_files_updated = []
@@ -136,9 +136,9 @@ def send_files_by_id(id_to_send, client_socket, succ):
     for file in my_files:
         
         file_hash = generate_sha1(file)
-        print(f"file_hash: {file_hash}")
+        # print(f"file_hash: {file_hash}")
 
-        print("condition", (succ and file_hash <= id_to_send) or not succ)
+        # print("condition", (succ and file_hash <= id_to_send) or not succ)
         
         if ((succ and file_hash <= id_to_send) or not succ):
             
@@ -199,14 +199,14 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
         nodes = list(member_list) + [machine_id]
         nodes.sort()
 
-        print(f"member_list: {member_list}")
+        # print(f"member_list: {member_list}")
 
         ip_address = socket.gethostbyaddr(ip_address[0])[0]
         node_id = id_from_ip(ip_address)
-        print(f"node_id: {node_id}")
+        # print(f"node_id: {node_id}")
 
-        print(nodes[(nodes.index(node_id) + 1) % len(machines)])
-        succ = nodes[(nodes.index(node_id) + 1) % len(machines)] == machine_id
+        # print(nodes[(nodes.index(node_id) + 1) % len(nodes)])
+        succ = nodes[(nodes.index(node_id) + 1) % len(nodes)] == machine_id
         
         send_files_by_id(int(file_name), client_socket, succ)
     
@@ -241,11 +241,11 @@ def request_merge(id, file_name):
         return server # return socket
     
     except (ConnectionRefusedError, socket.timeout):
-        print("Connection Refused")
+        # print("Connection Refused")
         return -1
 
     except (OSError):
-        print("OS ERROR")
+        # print("OS ERROR")
         return -2
 
 def merge_file(file_name):
@@ -256,13 +256,13 @@ def merge_file(file_name):
     sockets = []
 
     replicas = get_replica_ids(file_id)
-    print(replicas)
+    # print(replicas)
     for replica_id in replicas:
 
         if (machine_id == replica_id):
             continue
 
-        print(f"Replica id: {replica_id}")
+        # print(f"Replica id: {replica_id}")
 
         replica_socket = request_merge(replica_id, file_name)
         if (replica_socket != -1 and replica_socket != -2):
@@ -360,22 +360,22 @@ def handle_failed(failed_nodes, member_list):
         idx = machines_sorted.index(node)
 
         affected_replica_heads = [machines_sorted[(idx - 1 - i) % len(machines_sorted)] for i in range(REPLICATION_FACTOR - 1)]
-        print(affected_replica_heads)
+        # print(affected_replica_heads)
         
         if machine_id in affected_replica_heads:
             
             for file_name in ownership_list.get(machine_id):
 
-                print(file_name)
+                # print(file_name)
                 
                 receiver_id = machines_sorted[(my_idx + REPLICATION_FACTOR) % len(machines_sorted)] # don't subtract 1 as failed node still in machines sorted
-                print(machines_sorted)
-                print(receiver_id)
+                # print(machines_sorted)
+                # print(receiver_id)
                 
                 request_create_file(receiver_id, file_name)
                 request_append_file(receiver_id, file_name, get_server_file_path(file_name), "F")
     time_end = datetime.now()
-    print(f"start: {time_init} time_end: {time_end}")
+    print(f"start: {time_end - time_init}")
 
 def handle_joined_initial():
 
@@ -390,12 +390,12 @@ def handle_joined_initial():
             succesor = i
             break # F my life
 
-    print(f"Successor: {mem_set[succesor]}")
+    # print(f"Successor: {mem_set[succesor]}")
     request_files_by_id(machine_id, mem_set[succesor])
 
 def handle_joined(joined, member_set): 
 
-    print("joined", joined)
+    # print("joined", joined)
 
     machines_sorted = list(member_set) + [machine_id] + list(joined)
     machines_sorted.sort()
@@ -423,7 +423,7 @@ def handle_joined(joined, member_set):
 
             for file_name in files_to_send:
 
-                print(file_name)
+                # print(file_name)
 
                 if prev_node == node:
                     request_create_file(prev_node, file_name)
@@ -483,8 +483,8 @@ def handle_joined(joined, member_set):
                     new_files.remove(file)
                 ownership_list.add(owner, new_files if new_files else [])
 
-    print(f"updated_files: {updated_files}")
-    print(f"new_node_files: {new_node_files}")
+    # print(f"updated_files: {updated_files}")
+    # print(f"new_node_files: {new_node_files}")
 
     for node, files in updated_files.items():
         ownership_list.add(node, files)
@@ -501,9 +501,9 @@ def check_memlist():
     
     failed = member_list - new_members
     joined = new_members - member_list
-    print(f"failed: {failed}")
-    print(f"ownership: {ownership_list.items()}")
-    print(f"memtable: {memtable.items()}")
+    # print(f"failed: {failed}")
+    # print(f"ownership: {ownership_list.items()}")
+    # print(f"memtable: {memtable.items()}")
 
     if (len(failed) > 0):
         handle_failed(failed, member_list)
@@ -606,7 +606,7 @@ def start_server(machine_id: int):
 
     handle_joined_initial()
     
-    print("starting server...")
+    # print("starting server...")
 
     while True:
         try:
@@ -615,7 +615,7 @@ def start_server(machine_id: int):
             check_memlist()
             continue
 
-        print(f"connecting with: {ip_address}")
+        # print(f"connecting with: {ip_address}")
         
         # Creates a new thread for each client
         client_handler = threading.Thread(target=handle_client, args=(client_socket, machine_id, ip_address,))
