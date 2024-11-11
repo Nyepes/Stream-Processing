@@ -43,7 +43,9 @@ def request_file(machine_id, file_name, output_file, version = 0):
             received_version = int.from_bytes(server.recv(4), byteorder="little")
             print(version, received_version)
             
-            if (version is not None and received_version == version): return received_version
+            if (version is not None and received_version == version): 
+                print("cache hit")
+                return received_version
             
             # Receive file
             with open(output_file, "wb") as output:
