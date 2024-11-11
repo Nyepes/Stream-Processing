@@ -16,6 +16,13 @@ def generate_sha1(input_string):
     return int(sha1_hash.hexdigest(), 16) % 10 + 1 # Num between 1 and 10
 
 def read_file_to_socket(file_name, sock = None):
+    """
+    Reads a file and sends its content to a socket or prints it to the console.
+    
+    Parameters:
+        file_name (str): The name of the file to read.
+        sock (socket.socket, optional): The socket to send data to. If None, print to console.
+    """
     try:
         with open(get_server_file_path(file_name), 'r') as file:
             for line in file:
@@ -27,6 +34,18 @@ def read_file_to_socket(file_name, sock = None):
         sock.sendall("Error".encode())
 
 def request_file(machine_id, file_name, output_file, version = 0):
+    """
+    Requests a file from a specified machine and saves it to the output file.
+    
+    Parameters:
+        machine_id (int): The ID of the machine to request the file from.
+        file_name (str): The name of the file to request.
+        output_file (str): The path to save the received file.
+        version (int, optional): The version of the file requested. Defaults to 0.
+    
+    Returns:
+        int: The version of the file received or an error code.
+    """
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             
@@ -62,7 +81,16 @@ def request_file(machine_id, file_name, output_file, version = 0):
         return -2
 
 def request_create_file(machine_to_request, file_name):
+    """
+    Requests the creation of a file on a specified machine.
     
+    Parameters:
+        machine_to_request (int): The ID of the machine to request the file creation.
+        file_name (str): The name of the file to create.
+    
+    Returns:
+        int: 0 if successful, -1 if there was an error.
+    """
     try:    
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
             
@@ -88,7 +116,18 @@ def request_create_file(machine_to_request, file_name):
     return 0
 
 def request_append_file(receiver_id, server_file_name, local_file_name, status):
+    """
+    Requests to append a file to a specified receiver.
     
+    Parameters:
+        receiver_id (int): The ID of the receiver machine.
+        server_file_name (str): The name of the file on the server.
+        local_file_name (str): The name of the local file to append.
+        status (str): The status of the file (e.g., 'N' for new).
+    
+    Returns:
+        int: 0 if successful, -1 if there was an error.
+    """
     try:    
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -121,6 +160,16 @@ def request_append_file(receiver_id, server_file_name, local_file_name, status):
     return 0
 
 def request_merge_file(receiver_id, server_file_name):
+    """
+    Requests to merge a file on a specified receiver.
+    
+    Parameters:
+        receiver_id (int): The ID of the receiver machine.
+        server_file_name (str): The name of the file to merge.
+    
+    Returns:
+        int: 0 if successful, -1 if there was an error.
+    """
     try:    
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -147,6 +196,14 @@ def request_merge_file(receiver_id, server_file_name):
     return 0
 
 def send_file(receiver_socket, file_name, file_version=None):
+    """
+    Sends a file to a specified socket.
+    
+    Parameters:
+        receiver_socket (socket.socket): The socket to send the file to.
+        file_name (str): The name of the file to send.
+        file_version (int, optional): The version of the file being sent.
+    """
     try:
         print("sending")
         if (file_version is not None):
@@ -166,15 +223,16 @@ def send_file(receiver_socket, file_name, file_version=None):
         print(f"OS error: {e}")
 
 def get_receiver_id_from_file(my_id, file_name):
-
     """
-
-    return replica id to send file to
-
-    Note that if my_id is 0 we send the head replica
-
+    Determines the receiver ID to send a file to based on the file's ID and the current machine's ID.
+    
+    Parameters:
+        my_id (int): The ID of the current machine.
+        file_name (str): The name of the file to send.
+    
+    Returns:
+        int: The ID of the receiver machine.
     """
-
     machines = get_machines() + [id_from_ip(socket.gethostname())]
     machines.sort()
 
@@ -210,7 +268,15 @@ def get_receiver_id_from_file(my_id, file_name):
     return replicas[my_id % REPLICATION_FACTOR] # Arbitrary formula for replica selection (helps with load balancing)
 
 def get_replica_ids(file_id):
+    """
+    Retrieves the IDs of the replicas for a given file ID.
     
+    Parameters:
+        file_id (int): The ID of the file.
+    
+    Returns:
+        list: A list of replica IDs.
+    """
     machines = get_machines() + [id_from_ip(socket.gethostname())]
     machines.sort()
     
@@ -227,12 +293,39 @@ def get_replica_ids(file_id):
     return replicas
     
 def get_server_file_path(filename):
+    """
+    Constructs the server file path for a given filename.
+    
+    Parameters:
+        filename (str): The name of the file.
+    
+    Returns:
+        str: The constructed server file path.
+    """
     return f"src/mp3/fs/{filename}"
 
 def get_client_file_path(filename):
+    """
+    Constructs the client file path for a given filename.
+    
+    Parameters:
+        filename (str): The name of the file.
+    
+    Returns:
+        str: The constructed client file path.
+    """
     return f"src/mp3/local_cache/{filename}"
 
 def get_server_file_metadata(filename):
+    """
+    Retrieves the metadata for a given file from the server.
+    
+    Parameters:
+        filename (str): The name of the file.
+    
+    Returns:
+        dict: The metadata of the file or default metadata if not found.
+    """
     try:
         metadata_file_path = f"metadata/{filename}"
         with open(get_server_file_path(metadata_file_path), "r") as f:
@@ -242,6 +335,16 @@ def get_server_file_metadata(filename):
         return INIT_FILE_METADATA
 
 def write_server_file_metadata(filename, data):
+    """
+    Writes metadata for a given file to the server.
+    
+    Parameters:
+        filename (str): The name of the file.
+        data (dict): The metadata to write.
+    
+    Returns:
+        int: -1 if there was an error, otherwise returns 0.
+    """
     metadata_file_path = f"metadata/{filename}"
     file_path = get_server_file_path(metadata_file_path)
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -252,6 +355,15 @@ def write_server_file_metadata(filename, data):
         return -1
 
 def get_client_file_metadata(filename):
+    """
+    Retrieves the metadata for a given file from the client.
+    
+    Parameters:
+        filename (str): The name of the file.
+    
+    Returns:
+        dict: The metadata of the file or default metadata if not found.
+    """
     try:
         metadata_file_path = f"metadata/{filename}"
         with open(get_client_file_path(metadata_file_path), "r") as f:
@@ -261,6 +373,16 @@ def get_client_file_metadata(filename):
         return INIT_FILE_METADATA
 
 def write_client_file_metadata(filename, data):
+    """
+    Writes metadata for a given file to the client.
+    
+    Parameters:
+        filename (str): The name of the file.
+        data (dict): The metadata to write.
+    
+    Returns:
+        int: -1 if there was an error, otherwise returns 0.
+    """
     metadata_file_path = f"metadata/{filename}"
     try:
         with open(get_client_file_path(metadata_file_path), "w") as f:
@@ -269,4 +391,13 @@ def write_client_file_metadata(filename, data):
         return -1
 
 def id_from_ip(ip):
+    """
+    Extracts the machine ID from an IP address.
+    
+    Parameters:
+        ip (str): The IP address of the machine.
+    
+    Returns:
+        int: The extracted machine ID.
+    """
     return int(ip[13:15])
