@@ -11,7 +11,7 @@ from src.shared.DataStructures.mem_table import MemTable
 from src.shared.DataStructures.Dict import Dict
 
 from src.mp3.shared import generate_sha1, id_from_ip, get_machines, request_append_file, send_file, get_receiver_id_from_file, get_replica_ids, get_server_file_path, get_server_file_metadata, write_server_file_metadata, request_create_file
-from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA
+from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA, GET, MERGE, APPEND, CREATE, START_MERGE, JOIN, MULTIAPPEND_REQUEST
 
 memtable = None
 member_list = None
@@ -171,28 +171,28 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     file_name = client_socket.recv(file_length).decode('utf-8')
 
     # GET
-    if (mode == "G"):
+    if (mode == GET):
         file_version = int.from_bytes(client_socket.recv(4), byteorder="little")
         handle_get(file_name, client_socket, client_version = file_version)
     
     # MERGE
-    elif (mode == "M"):
+    elif (mode == MERGE):
         handle_merge(file_name, client_socket, ip_address)
     
     # Append
-    elif (mode == "A"):
+    elif (mode == APPEND):
         status = client_socket.recv(1).decode('utf-8')
         handle_append(file_name, client_socket, status)
    
     # Create
-    elif (mode == "C"):
+    elif (mode == CREATE):
         handle_create(file_name, client_socket)
     
     # Start Merge
-    elif (mode == "P"):
+    elif (mode == START_MERGE):
         merge_file(file_name)
     
-    elif (mode == "J"):
+    elif (mode == MULTIAPPEND_REQUEST):
         
         member_list = get_machines() # Update member list as new node joined
         
