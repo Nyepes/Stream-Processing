@@ -60,10 +60,10 @@ def request_file(machine_id, file_name, output_file, version = 0):
             
             # Receive response
             received_version = int.from_bytes(server.recv(4), byteorder="little")
-            print(version, received_version)
+            # print(version, received_version)
             
             if (version is not None and received_version == version): 
-                print("cache hit")
+                # print("cache hit")
                 return received_version
             
             # Receive file
@@ -205,7 +205,7 @@ def send_file(receiver_socket, file_name, file_version=None):
         file_version (int, optional): The version of the file being sent.
     """
     try:
-        print("sending")
+        # print("sending")
         if (file_version is not None):
             receiver_socket.sendall(file_version.to_bytes(4, byteorder="little"))
         with open(file_name, 'rb') as file:
