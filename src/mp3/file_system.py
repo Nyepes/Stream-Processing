@@ -11,7 +11,7 @@ from src.shared.DataStructures.mem_table import MemTable
 from src.shared.DataStructures.Dict import Dict
 
 from src.mp3.shared import generate_sha1, id_from_ip, get_machines, request_append_file, send_file, get_receiver_id_from_file, get_replica_ids, get_server_file_path, get_server_file_metadata, write_server_file_metadata, request_create_file
-from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA
+from src.mp3.constants import REPLICATION_FACTOR, INIT_FILE_METADATA, GET, MERGE, APPEND, CREATE, START_MERGE, JOIN, MULTIAPPEND_REQUEST
 
 memtable = None  # Global variable to hold the memory table
 member_list = None  # Global variable to hold the list of members in the system
@@ -209,48 +209,53 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     file_name = client_socket.recv(file_length).decode('utf-8')
 
     # GET
-    if (mode == "G"):
+    if (mode == GET):
+        print(f"GET REQUEST START: {file_name}")
         file_version = int.from_bytes(client_socket.recv(4), byteorder="little")
         handle_get(file_name, client_socket, client_version=file_version)
-    
+        print(f"GET REQUEST FINISHED: {file_name}")   
     # MERGE
-    elif (mode == "M"):
+    elif (mode == MERGE):
+        print(f"MERGE REQUEST START: {file_name}")
         handle_merge(file_name, client_socket, ip_address)
+        print(f"MERGE REQUEST FINISHED: {file_name}")   
+
     
     # Append
-    elif (mode == "A"):
+    elif (mode == APPEND):
+        print(f"APPEND REQUEST START: {file_name}")
         status = client_socket.recv(1).decode('utf-8')
         handle_append(file_name, client_socket, status)
+        print(f"APPEND REQUEST FINISHED: {file_name}")   
    
     # Create
-    elif (mode == "C"):
+    elif (mode == CREATE):
+        print(f"CREATE REQUEST START: {file_name}")   
         handle_create(file_name, client_socket)
-    
+        print(f"CREATE REQUEST FINISHED: {file_name}")   
     # Start Merge
-    elif (mode == "P"):
+    elif (mode == START_MERGE):
+        print(f"START MERGE REQUEST START: {file_name}")   
         merge_file(file_name)
-    
-    elif (mode == "J"):
-        member_list = get_machines()  # Update member list as new node joined
-        
+        print(f"START MERGE REQUEST FINISHED: {file_name}")       
+    elif (mode == JOIN):
+        member_list = get_machines() # Update member list as new node joined
         nodes = list(member_list) + [machine_id]
         nodes.sort()
-
         ip_address = socket.gethostbyaddr(ip_address[0])[0]
         node_id = id_from_ip(ip_address)
-        
         succ = nodes[(nodes.index(node_id) + 1) % len(nodes)] == machine_id
-        
         send_files_by_id(int(file_name), client_socket, succ)
     
-    elif (mode == "Q"):
+    elif (mode == MULTIAPPEND_REQUEST):
+        print(f"MULTIAPPEND REQUEST START: {file_name}")               
         server_file = file_name
         local_file_length = int.from_bytes(client_socket.recv(1), byteorder="little")
-        
         local_file_name = client_socket.recv(local_file_length).decode('utf-8')
-
         server_id = get_receiver_id_from_file(machine_id, file_name)
         res = request_append_file(server_id, server_file, local_file_name, "N")
+        print(f"MULTIAPPEND REQUEST START: {file_name}")               
+
 
     client_socket.close()
 
