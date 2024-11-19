@@ -14,11 +14,13 @@ failure_detector() {
 }
 
 start() {
+  killall "python" 2> /dev/null
   rm src/member_list.txt
   touch src/member_list.txt
   dgrep_server "$@" & 2> /dev/null
   failure_detector "$@" &
-  python src/mp3/file_system.py "$@"
+  python src/mp3/file_system.py "$@" &
+  python src/mp4/worker.py "$@" &
 }
 
 members() {
