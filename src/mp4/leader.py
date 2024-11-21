@@ -19,20 +19,23 @@ max_job_id = 0
 def send_request(type, request_data, to):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
         server_sock.settimeout(RECEIVE_TIMEOUT)
+        print(to)
         server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
         server_sock.sendall(type.encode('utf-8'))
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
 
-def request_read(job_id, file, file_owners, next_stage, num_tasks):
+
+def request_read(job_id, file, readers, workers, num_tasks):
+    print(f"NUM_TASKS: {num_tasks}")
     for i in range(num_tasks):
         request = {
             "FILE": file,
             "NUM_TASKS": num_tasks,
             "KEY": i,
-            "VM": next_stage,
+            "VM": workers[i],
             "JOB_ID": job_id
         }
-        send_request(READ, request, file_owners[i])
+        send_request(READ, request, readers[i])
 
 def request_intermediate_stage(job_id, vms, binary_path):
     for vm in vms:
@@ -45,13 +48,14 @@ def request_intermediate_stage(job_id, vms, binary_path):
 
 def get_readers(num_jobs, hydfs_dir):
     file_owners = get_replica_ids(generate_sha1(hydfs_dir))
-    return file_owners
+    return file_owners[:num_jobs]
 
 def get_workers(num_tasks):
     num_jobs = []
     global member_jobs
-    print(member_jobs)
     jobs = member_jobs.items()
+    print(jobs)
+
     for job in jobs:
         num_jobs.append((len(job[1]), job[0])) #Number of jobs and job number
     num_jobs.sort()
@@ -73,7 +77,11 @@ def start_job(job_data):
     # Maybe create file??? before starting
 
     readers = get_readers(num_tasks, hydfs_dir)
-    workers = get_workers(num_tasks)
+    workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
+
+    print(f"workers: {workers}")
+    print(f"readers: {readers}")
+
 
     job_data["READERS"] = readers
     job_data["WORKERS"] = workers
@@ -86,8 +94,10 @@ def start_job(job_data):
     for worker in workers:
         member_jobs.increment_list(worker, job_id)
 
+
+
     request_intermediate_stage(job_id, workers, op_1_path)
-    request_read(job_id, readers, op_1_path, op_2_path, output_dir, num_tasks)
+    request_read(job_id, hydfs_dir, readers, workers[: len(workers) // 2], num_tasks)
     
 def handle_client(client_sock, ip):
     print(ip)
