@@ -8,7 +8,7 @@ import sys
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
 from src.mp4.constants import READ, EXECUTE, RUN
-from src.mp3.shared import get_machines, generate_sha1
+from src.mp3.shared import get_machines, generate_sha1, append
 from src.shared.DataStructures.Dict import Dict
 
 
@@ -25,8 +25,7 @@ def send_int(sock, int_val: int):
 def receive_int(sock):
     return int.from_bytes(sock.recv(4), byteorder="little")
 
-def handle_output(job_id):
-    job = current_jobs.get(job_id)
+def pipe_vms(job):
     process = job["PROCESS"]
     vms = job["VM"]
     socks = []
@@ -42,6 +41,29 @@ def handle_output(job_id):
         socks[output_id].sendall(new_line)
     for sock in socks:
         sock.close()
+
+def pipe_file(job):
+    process = job["PROCESS"]
+    output_file = job_metadata["OUTPUT"]
+    with open(output_file, "wb") as output:
+        while process.poll() is None:
+            new_line = get_process_output(process, bytes=1024)
+            output.write(new_line)
+            sleep(0.1)
+    append(machine_id, output_file, output_file)
+
+
+        
+
+    
+
+def handle_output(job_id):
+    job = current_jobs.get(job_id)
+    if ("VM" in job):
+        pipe_vms(job)
+    elif ("OUTPUT" in job):
+        pipe_file(job)
+
         
 def get_process_output(process, bytes=1024):
     return process.stdout.readline()
@@ -65,7 +87,6 @@ def run_job(client: socket.socket):
         pipe_input(process, data)
     process.stdin.close()
         
-
 def partition_file(leader_socket: socket.socket):
     # We should ignore unmerged data so only bring next stage vm id
     # Get config json
@@ -82,9 +103,9 @@ def partition_file(leader_socket: socket.socket):
     vm_id = int(job_metadata["VM"])
     job_id = int(job_metadata["JOB_ID"])
 
-    with open(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as next_stage:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as next_stage:
         next_stage.settimeout(RECEIVE_TIMEOUT)
-        next_stage.connect(HOSTS[vm_id - 1], RAINSTORM_PORT)
+        next_stage.connect((HOSTS[vm_id - 1], RAINSTORM_PORT))
         # Suppose key can't have commas
         with open(filename, "r") as file:
             linenumber = 0
@@ -103,12 +124,11 @@ def partition_file(leader_socket: socket.socket):
 def prepare_execution(leader_socket):
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
     operation_exe = job_metadata["PATH"]
-    vm_id = list(job_metadata["VM"]) # Vms of ids, idx 1 corresponds to key = i
     job_id = int(job_metadata["JOB_ID"]) # Job id
     process = subprocess.Popen(
         operation_exe,
         stdin=subprocess.PIPE,
-        stdout = subprocess.PIPE
+        stdout=subprocess.PIPE
     )
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
@@ -123,9 +143,7 @@ def handle_client(client: socket.socket, ip_address):
     elif (mode == RUN):
         run_job(client)
 
-
 def start_server(machine_id: int):
-    print("here")
     """
     Creates a server that listens on a specified port and handles client connections.
     It constantly waits for new connections and creates a new thread to handle each client connection.

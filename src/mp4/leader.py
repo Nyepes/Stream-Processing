@@ -3,18 +3,23 @@ import socket
 import threading
 import os
 import json
+from time import sleep
 
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, MAX_CLIENTS, LEADER_PORT, RAINSTORM_PORT
+from src.shared.DataStructures.Dict import Dict
 from src.mp4.constants import READ, EXECUTE, RUN
 from src.shared.shared import get_machines
 from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_replica_ids, generate_sha1
 
 machine_id = int(sys.argv[1])
+cur_jobs = None
+member_jobs = None
+max_job_id = 0
 
 def send_request(type, request_data, to):
-    with open(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as server_sock:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
         server_sock.settimeout(RECEIVE_TIMEOUT)
-        server_sock.connect(HOSTS[to - 1], RAINSTORM_PORT)
+        server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
         server_sock.sendall(type.encode('utf-8'))
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
 
@@ -38,24 +43,104 @@ def request_intermediate_stage(job_id, vms, binary_path):
         }
         send_request(EXECUTE, request, vm)
 
+def get_readers(num_jobs, hydfs_dir):
+    file_owners = get_replica_ids(generate_sha1(hydfs_dir))
+    return file_owners
 
-def start_leader(argv):
-    job_id = 0 # TODO: Change
-    op_1_path = argv[1]
-    op_2_path = argv[2]
-    hydfs_dir = argv[3]
-    output_dir = argv[4]
-    num_tasks = int(argv[5])
+def get_workers(num_tasks):
+    num_jobs = []
+    global member_jobs
+    print(member_jobs)
+    jobs = member_jobs.items()
+    for job in jobs:
+        num_jobs.append((len(job[1]), job[0])) #Number of jobs and job number
+    num_jobs.sort()
+    ans = []
+    for i in range(num_tasks):
+        ans.append(num_jobs[i % len(num_jobs)][1]) # The node id with lowest amount of jobs
+    return ans
+
+def start_job(job_data):
+    global max_job_id
+
+    job_id = max_job_id
+    max_job_id += 1 # TODO: Works if lucky!!!
+    op_1_path = job_data["OP_1_PATH"]
+    op_2_path = job_data["OP_2_PATH"]
+    hydfs_dir = job_data["INPUT_FILE"]
+    output_dir = job_data["OUTPUT_FILE"]
+    num_tasks = int(job_data["NUM_TASKS"])
     # Maybe create file??? before starting
 
-    file_owners = get_replica_ids(generate_sha1(hydfs_dir))
-    
-    vms = [1, 2, 3] # TODO: Actual VMS
-    request_intermediate_stage(job_id, vms, op_1_path)
-    request_read(job_id, file_owners, op_1_path, op_2_path, output_dir, num_tasks)
-    
+    readers = get_readers(num_tasks, hydfs_dir)
+    workers = get_workers(num_tasks)
 
+    job_data["READERS"] = readers
+    job_data["WORKERS"] = workers
+
+    cur_jobs.add(job_id, job_data)
+
+    for reader in readers:
+        member_jobs.increment_list(reader, job_id)
+
+    for worker in workers:
+        member_jobs.increment_list(worker, job_id)
+
+    request_intermediate_stage(job_id, workers, op_1_path)
+    request_read(job_id, readers, op_1_path, op_2_path, output_dir, num_tasks)
     
+def handle_client(client_sock, ip):
+    print(ip)
+    mode = client_sock.recv(1)
+    print(mode)
+    if (mode == b"S"):
+        # Start Job
+        data = client_sock.recv(1024 * 1024)
+        job_data = json.loads(data.decode('utf-8'))
+        print(f"Starting Job: {job_data}")
+        start_job(job_data)
+
+def start_server(machine_id):
+    """
+    Creates a server that listens on a specified port and handles client connections.
+    It constantly waits for new connections and creates a new thread to handle each client connection.
+
+    Parameters:
+        machine_id (str): The ID of the machine.
+    """
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # Lets server reuse address so that it can relaunch quickly
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.settimeout(RECEIVE_TIMEOUT)
+
+    server.bind((HOSTS[machine_id - 1], LEADER_PORT))
+    server.listen(MAX_CLIENTS)
+    
+    global cur_jobs, member_jobs
+    cur_jobs = Dict(dict)
+    member_jobs = Dict(list)
+
+    sleep(7)
+    
+    global member_list
+    member_list = get_machines() + [machine_id]
+    for member in member_list:
+        member_jobs.add(member, [])
+    
+    while True:
+        try:
+            client_socket, ip_address = server.accept()
+        except (ConnectionRefusedError, socket.timeout):
+            # TODO: See if someone next or prev
+            continue
+
+        # Creates a new thread for each client
+        client_handler = threading.Thread(target=handle_client, args=(client_socket, ip_address,))
+        
+        # sets daemon to true so that there is no need of joining threads once thread finishes
+        client_handler.daemon = True
+        client_handler.start()
 
 if __name__ == "__main__":
-    start_leader(sys.argv)
+    start_server(int(sys.argv[1]))
