@@ -19,6 +19,7 @@ from src.shared.DataStructures.Dict import Dict
 
 member_list = None
 current_jobs = None # Job Id to configuration of the job (executable, next stage vms, keys, etc...)
+machine_id = None
 
 def send_int(sock, int_val: int):
     sock.sendall(int_val.to_bytes(4, byteorder="little"))
@@ -48,13 +49,11 @@ def pipe_vms(job):
 
 def pipe_file(job):
     process = job["PROCESS"]
-    output_file = job_metadata["OUTPUT"]
+    output_file = job["OUTPUT"]
     with open(output_file, "wb") as output:
         while process.poll() is None:
-            print("Loop File")
             new_line = get_process_output(process, bytes=1024)
             output.write(new_line)
-            sleep(0.1)
     append(machine_id, output_file, output_file)
 
 
@@ -156,13 +155,13 @@ def handle_client(client: socket.socket, ip_address):
         print("HERE")
         run_job(client)
 
-def start_server(machine_id: int):
+def start_server(my_id: int):
     """
     Creates a server that listens on a specified port and handles client connections.
     It constantly waits for new connections and creates a new thread to handle each client connection.
 
     Parameters:
-        machine_id (str): The ID of the machine.
+        my_id (int): The ID of the machine.
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
@@ -172,7 +171,8 @@ def start_server(machine_id: int):
 
     server.bind((HOSTS[machine_id - 1], RAINSTORM_PORT))
     server.listen(MAX_CLIENTS)
-    
+    global machine_id
+    machine_id = my_id
     global current_jobs
     current_jobs = Dict(dict)
     sleep(7)
