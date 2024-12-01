@@ -14,11 +14,16 @@ failure_detector() {
 }
 
 start() {
+  killall "python" 2> /dev/null &
   rm src/member_list.txt
   touch src/member_list.txt
-  dgrep_server "$@" & 2> /dev/null
+  dgrep_server "$@" 2> /dev/null &
   failure_detector "$@" &
-  python src/mp3/file_system.py "$@"
+  python src/mp3/file_system.py "$@" &
+  if [ "$1" == "1" ]; then
+    python src/mp4/leader.py "$@" &
+  fi
+  python src/mp4/worker.py "$@" 
 }
 
 members() {
@@ -129,6 +134,10 @@ elif [ "$1" == "reset_fs" ]; then
   shift
   rm -r src/mp3/fs
   mkdir -p src/mp3/fs/metadata
+
+elif [ "$1" == "Rainstorm" ]; then
+  shift
+  python src/mp4/Rainstorm.py "$@"
 else
   echo "$1"
   echo "Command not found"

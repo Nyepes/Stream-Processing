@@ -115,6 +115,7 @@ def request_create_file(machine_to_request, file_name):
     
     return 0
 
+
 def request_append_file(receiver_id, server_file_name, local_file_name, status):
     """
     Requests to append a file to a specified receiver.
@@ -389,6 +390,11 @@ def write_client_file_metadata(filename, data):
             data = json.dump(data, f)
     except:
         return -1
+
+def append(my_id, local_file, file_name):
+    server_id = get_receiver_id_from_file(my_id, file_name)
+    res = request_append_file(server_id , file_name, local_file, "N")
+    return res
 
 def id_from_ip(ip):
     """
