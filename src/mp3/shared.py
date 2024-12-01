@@ -396,6 +396,11 @@ def append(my_id, local_file, file_name):
     res = request_append_file(server_id , file_name, local_file, "N")
     return res
 
+def merge(file_name):
+    receiver_id = get_receiver_id_from_file(0, file_name)    
+    res = request_merge_file(receiver_id, file_name)
+    return res
+
 def id_from_ip(ip):
     """
     Extracts the machine ID from an IP address.
