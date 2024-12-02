@@ -77,7 +77,7 @@ def resend_queue(queue, sock):
 
     while(not queue.empty()):
         key_val = q.get()
-        sock.sendall(encode_key_val(key_val))
+        sock.sendall(encode_key_val(*key_val))
         new_queue.put(key_val)
 
 
@@ -143,7 +143,7 @@ def pipe_vms(job):
             randomized_sync_log(local_processed_log, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
             queues[output_id].put((line_number, key_val))
             print("HELLO: ", key_val)
-            socks[output_id].sendall(encode_key_val(line_number, encode_key_val(key_val)))
+            socks[output_id].sendall(encode_key_val(line_number, encode_key_val(*key_val)))
             line_number += 1
     
     # Close socks
@@ -242,9 +242,9 @@ def partition_file(leader_socket: socket.socket):
                 # Maybe check if key has comma
                 hash_parition = generate_sha1(key)
                 if (hash_parition % num_tasks == key):
-                    stream = encode_key_val(key, line, in_bytes=True)
+                    stream = encode_key_val(key, line)
                     # stream = f"{key}, {line}\n" #TODO: Maybe better serialization so that files with : or line with , keep working
-                    key_val = encode_key_val(linenumber, stream, in_bytes=True)
+                    key_val = encode_key_val(linenumber, stream)
                     queue.put((line_number, stream), block=True)
                     next_stage.sendall(key_val) # Since TCP ordered
                 linenumber += 1
@@ -256,7 +256,7 @@ def prepare_execution(leader_socket):
     print(operation_exe)
 
     process = subprocess.Popen(
-        operation_exe.split(" "),
+        operation_exe.split(" ") + [str(machine_id)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE
     )
