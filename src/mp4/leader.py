@@ -22,6 +22,7 @@ def send_request(type, request_data, to):
         server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
         server_sock.sendall(type.encode('utf-8'))
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
+        server.recv(1)
 
 
 def request_read(job_id, file, readers, workers, num_tasks):
@@ -97,7 +98,7 @@ def start_job(job_data):
 
 
 
-    request_intermediate_stage(job_id, workers[: len(workers) // 2], op_1_path)
+    request_intermediate_stage(job_id, workers, op_1_path)
     request_read(job_id, hydfs_dir, readers, workers[: len(workers) // 2], num_tasks)
     
 def handle_client(client_sock, ip):

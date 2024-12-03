@@ -118,7 +118,9 @@ def pipe_vms(job):
             randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
             queues[output_idx].put((line_number, key_val))
             json_string = encode_key_val(line_number, key_val).encode()
-            socks[output_idx].sendall(encode_key_val(line_number, key_val).encode())
+
+            send_int(socks[output_idx], len(json_string))
+            socks[output_idx].sendall(json_string)
             line_number += 1
     
     # Close socks
@@ -181,6 +183,7 @@ def prepare_execution(leader_socket):
     writer = threading.Thread(target=handle_output, args=(job_id,))
     writer.daemon = True
     writer.start()
+    leader_socket.sendall('D'.encode())
 
 
 def pipe_input(process, line):
@@ -201,10 +204,12 @@ def run_job(client: socket.socket):
             break
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
+        print(f"RECEIVED RAW: {data}")
         received_stream = decode_key_val(data)
         print(f"RECEIVED STREAM: {received_stream}")
         line_number = received_stream["key"]
-        stream = decode_key_val(received_stream["value"])
+        
+        stream = received_stream["value"]
 
         if (processed_streams.get((job_id, client_id, line_number))):
             # If already processed
@@ -213,13 +218,13 @@ def run_job(client: socket.socket):
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
         p_input = encode_key_val(new_key, stream)
-        pipe_input(process, p_input)
+        pipe_input(process, p_input.encode())
 
     process.stdin.close()    
 
 def partition_file(leader_socket: socket.socket):
     # We should ignore unmerged data so only bring next stage vm id
-
+    leader_socket.sendall('D'.encode())
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
     filename = job_metadata["FILE"] # Read from
     num_tasks = int(job_metadata["NUM_TASKS"]) # How many nodes
