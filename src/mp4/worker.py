@@ -115,7 +115,7 @@ def pipe_vms(job):
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
             # output_id = vms[output_idx]
-            randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
+            randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
             queues[output_idx].put((line_number, key_val))
             json_string = encode_key_val(line_number, key_val).encode()
 
@@ -138,20 +138,22 @@ def pipe_file(job):
     processed_data = defaultdict(list)
     with open(output_file, "wb") as output:
         while process.poll() is None:
-            print("file new_line")
             new_line = get_process_output(process, output)
-            print(new_line.decode('utf-8'))
-            length = from_bytes(new_line[:4])
-            print(length)
-            print(new_line[4:4 + length])
-
+            
             input_id, output_list = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             key_vals = decode_key_val_list(output_list) # [(key, val), ...]
             vm_id, line_num = input_id.split(':')
             
             processed_data[vm_id].append(line_num)
+            output_idx = generate_sha1(str(key_val[0])) % len(vms)
+            # output_id = vms[output_idx]
+            # randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
+            # queues[output_idx].put((line_number, key_val))
+            # json_string = encode_key_val(line_number, key_val).encode()
 
-            # TODO: change hydfs file to just one
+            # send_int(socks[output_idx], len(json_string))
+            # socks[output_idx].sendall(json_string)
+            # line_number += 1
             randomized_sync_log(output, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
     append(machine_id, output_file, output_file)
 def handle_output(job_id):
@@ -204,7 +206,6 @@ def run_job(client: socket.socket):
             break
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
-        print(f"RECEIVED RAW: {data}")
         received_stream = decode_key_val(data)
         print(f"RECEIVED STREAM: {received_stream}")
         line_number = received_stream["key"]

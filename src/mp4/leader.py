@@ -22,7 +22,7 @@ def send_request(type, request_data, to):
         server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
         server_sock.sendall(type.encode('utf-8'))
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
-        server.recv(1)
+        server_sock.recv(1)
 
 
 def request_read(job_id, file, readers, workers, num_tasks):
