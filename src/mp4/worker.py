@@ -114,7 +114,6 @@ def pipe_vms(job):
 
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
-            # output_id = vms[output_idx]
             randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
             queues[output_idx].put((line_number, key_val))
             json_string = encode_key_val(line_number, key_val).encode()
@@ -136,34 +135,41 @@ def pipe_file(job):
     process = job["PROCESS"]
     output_file = job["OUTPUT"]
     processed_data = defaultdict(list)
-    with open(output_file, "wb") as output:
+    
+    with open(output_file, "w") as output:
         while process.poll() is None:
+            
             new_line = get_process_output(process, output)
             
-            input_id, output_list = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
-            key_vals = decode_key_val_list(output_list) # [(key, val), ...]
-            vm_id, line_num = input_id.split(':')
+            if (new_line == b""):
+                break
             
-            processed_data[vm_id].append(line_num)
-            output_idx = generate_sha1(str(key_val[0])) % len(vms)
-            # output_id = vms[output_idx]
-            # randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
-            # queues[output_idx].put((line_number, key_val))
-            # json_string = encode_key_val(line_number, key_val).encode()
+            new_line = new_line.decode('utf-8')
+            dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
+            
+            vm_id, stream_id = dict_data["key"].split(':')
+            key_vals = dict_data["value"]
+            vm_id = int(vm_id)
+            
+            processed_data[vm_id].append(stream_id)
 
-            # send_int(socks[output_idx], len(json_string))
-            # socks[output_idx].sendall(json_string)
-            # line_number += 1
-            randomized_sync_log(output, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
+            for key_val in key_vals:
+                
+                output.write(f"{key_val[0]}:{key_val[1]}\n")
+                randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
+
     append(machine_id, output_file, output_file)
+    merge(output_file)
+
 def handle_output(job_id):
     job = current_jobs.get(job_id)
     if ("VM" in job):
+        print("VM")
         pipe_vms(job)
-        pass
     elif ("OUTPUT" in job):
-        pass
-        # pipe_file(job)    
+        print("OUTPUT")
+        pipe_file(job)    
+
 
 
 
