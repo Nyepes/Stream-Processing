@@ -1,5 +1,7 @@
 import sys
 import json
+from time import sleep
+
 machine_id = int(sys.argv[1])
 
 def user_defined_job(key, val):
@@ -12,3 +14,5 @@ for i in range(100):  # Read from stdin line by line
     json.dump({"key": new_key, "value": result}, sys.stdout)
     print()
     # print(encode_key_val(new_key, encode_key_val(*result), in_bytes = False))
+
+sleep(1000000)
