@@ -1,4 +1,3 @@
-from src.mp4.worker import encode_key_val
 import sys
 import json
 machine_id = int(sys.argv[1])
