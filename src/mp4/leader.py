@@ -58,7 +58,9 @@ def get_workers(num_tasks):
 
     for job in jobs:
         num_jobs.append((len(job[1]), job[0])) #Number of jobs and job number
-    num_jobs.sort()
+    
+    num_jobs.sort(reverse=False)
+    print(num_jobs)
     ans = []
     for i in range(num_tasks):
         ans.append(num_jobs[i % len(num_jobs)][1]) # The node id with lowest amount of jobs
@@ -77,6 +79,10 @@ def start_job(job_data):
     # Maybe create file??? before starting
 
     readers = get_readers(num_tasks, hydfs_dir)
+
+    for reader in readers:
+        member_jobs.increment_list(reader, job_id)
+
     workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
 
     print(f"workers: {workers}")
@@ -87,9 +93,6 @@ def start_job(job_data):
     job_data["WORKERS"] = workers
 
     cur_jobs.add(job_id, job_data)
-
-    for reader in readers:
-        member_jobs.increment_list(reader, job_id)
 
     for worker in workers:
         member_jobs.increment_list(worker, job_id)
@@ -130,14 +133,14 @@ def start_server(machine_id):
     global cur_jobs, member_jobs
     cur_jobs = Dict(dict)
     member_jobs = Dict(list)
-
     sleep(7)
     
     global member_list
     member_list = get_machines() + [machine_id]
     for member in member_list:
         member_jobs.add(member, [])
-    
+    print(member_list)
+    print(member_jobs)
     while True:
         try:
             client_socket, ip_address = server.accept()

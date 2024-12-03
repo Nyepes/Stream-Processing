@@ -13,7 +13,7 @@ from src.mp4.constants import READ, EXECUTE, RUN
 from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge
 from src.shared.DataStructures.Dict import Dict
 
-SYNC_PROBABILITY = 1/500
+SYNC_PROBABILITY = 1/1
 
 ## Plan
 
@@ -40,10 +40,22 @@ def get_hydfs_log_name(job):
     return f'{job["JOB_ID"]}-{machine_id}.log'
 
 def encode_key_val(key:str, val:str, in_bytes = True):
-    if (in_bytes):
-        key = key.encode('utf-8')
-        val = val.encode('utf-8')
-    return f"{to_bytes(len(key))}{key}{to_bytes(len(val))}{val}"
+    json_str = json.dumps({
+        "key": key, 
+        "value": val
+    })
+    return json_str
+
+    # key_length = len(key)
+    # val_length = len(val)
+
+    # if (in_bytes):
+    #     key = key.encode('utf-8')
+    #     val = val.encode('utf-8')
+    #     return to_bytes(key_length) + key + to_bytes(val_length) + val
+
+    # else:   
+    #     return f"{to_bytes(key_length)}{key}{to_bytes(val_length)}{val}"
 
 def decode_key_val_list(key_val_list):
     # TODO: fix
@@ -56,16 +68,17 @@ def decode_key_val_list(key_val_list):
     return result
 
 def decode_key_val(line):
-    # TODO: fix
-    key_length = from_bytes(line[:4])
-    key = line[4: key_length]
-    val_length = from_bytes(line[4 + key_length: 8 + key_length])
-    val = line[8 + key_length: val_length + 8 + key_length]
-    return (key, val) # bstr, bstr
+    return json.loads(line)
+    # # TODO: fix
+    # key_length = from_bytes(line[:4])
+    # key = line[4: key_length]
+    # val_length = from_bytes(line[4 + key_length: 8 + key_length])
+    # val = line[8 + key_length: val_length + 8 + key_length]
+    # return (key, val) # bstr, bstr
 
 def randomized_sync_log(local_log, hydfs_log, sender_sock, processed: list):
     # TODO: Send ack of ids that were already processed not sure how to do quite yet
-    if (random.random() < SYNC_PROBABILITY):
+    if (random.random() <= SYNC_PROBABILITY):
         append(machine_id, local_log, hydfs_log)
         merge(hydfs_log)
         for processed_input in processed:
@@ -76,7 +89,7 @@ def resend_queue(queue, sock):
     new_queue = Queue()
 
     while(not queue.empty()):
-        key_val = q.get()
+        key_val = queue.get()
         sock.sendall(encode_key_val(*key_val))
         new_queue.put(key_val)
 
@@ -128,22 +141,27 @@ def pipe_vms(job):
     processed_data = defaultdict(list)
     line_number = 0
     while process.poll() is None:
-        print("vm new_line")
+        # print("vm new_line")
         new_line = get_process_output(process, local_processed_log)
         if (new_line == b""):
             break
-        input_id, output_list = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
-        key_vals = decode_key_val_list(output_list) # b"[(key, val), ...]"
-        # print("input: ", input_id.decode('utf-8'))
-        vm_id, line_num = input_id.decode('utf-8').split(':')
+        new_line = new_line.decode('utf-8')
+        # print(new_line)
+        json_data = decode_key_val(new_line)
+        # print(json_data)
+        input_id = json_data["key"]
+        key_vals = json_data["value"]
+        # print("input: ", input_id)
+        vm_id, line_num = input_id.split(':')
+        vm_id = int(vm_id)
         processed_data[vm_id].append(line_num)
-        print("input", key_vals)
+        # print("input", key_vals)
         for key_val in key_vals:
-            output_id = vms[generate_sha1(key.decode('utf-8')) % len(vms)]
-            randomized_sync_log(local_processed_log, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
+            output_id = vms[generate_sha1(str(key_val[0])) % len(vms)]
+            randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
             queues[output_id].put((line_number, key_val))
-            print("HELLO: ", key_val)
-            socks[output_id].sendall(encode_key_val(line_number, encode_key_val(*key_val)))
+            # print("HELLO: ", key_val)
+            socks[output_id].sendall(encode_key_val(line_number, encode_key_val(*key_val)).encode('utf-8'))
             line_number += 1
     
     # Close socks
@@ -161,6 +179,11 @@ def pipe_file(job):
         while process.poll() is None:
             print("file new_line")
             new_line = get_process_output(process, output)
+            print(new_line.decode('utf-8'))
+            length = from_bytes(new_line[:4])
+            print(length)
+            print(new_line[4:4 + length])
+
             input_id, output_list = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             key_vals = decode_key_val_list(output_list) # [(key, val), ...]
             vm_id, line_num = input_id.split(':')
@@ -186,10 +209,13 @@ def get_process_output(process, local_file):
     return line
 
 def pipe_input(process, line):
+    print("input2: " + line)
+    print("Piping input: " + line.decode('utf-8'))
     process.stdin.write(line)
     process.stdin.flush()
 
 def run_job(client: socket.socket):
+    print("Here")
     job_id = receive_int(client)
     job = current_jobs.get(job_id)
     process = job["PROCESS"]
@@ -203,13 +229,16 @@ def run_job(client: socket.socket):
         
         stream_length = from_bytes(client.recv(4))
         stream = client.recv(stream_length) # 
+
+        print(f"Partition Input: {stream.decode('utf-8')}")
+
         if (processed_streams.get(job_id, client_id, line_number)):
             continue
         
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
         p_input = encode_key_val(new_key, stream)
-        pipe_input(process, p_input)
+        # pipe_input(process, p_input)
 
     process.stdin.close()    
 
