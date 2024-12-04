@@ -10,7 +10,6 @@ def user_defined_job(key, val):
 file =  open("output.txt", "w")
 for line in sys.stdin:  # Read from stdin line by line
     file.write(line)
-    file.write("\n")
     file.flush()
 
     new_key = f"{machine_id}:{line}" # new_key
