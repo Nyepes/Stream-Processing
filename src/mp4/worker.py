@@ -10,10 +10,10 @@ from collections import defaultdict
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
 from src.mp4.constants import READ, EXECUTE, RUN
-from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip
+from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
 from src.shared.DataStructures.Dict import Dict
 
-SYNC_PROBABILITY = 1/500
+SYNC_PROBABILITY = 1/10
 
 ## Plan
 
@@ -56,19 +56,26 @@ def get_process_output(process):
 
 def randomized_sync_log(local_log, hydfs_log, sender_sock, processed: list):
     # TODO: Send ack of ids that were already processed not sure how to do quite yet
-    return
     if (random.random() <= SYNC_PROBABILITY or len(processed) >= 500):
-        append(machine_id, local_log, hydfs_log)
+        print("HERE")
+        local_log.flush()
+        log_name = local_log.name
+        append(machine_id, log_name, hydfs_log)
         merge(hydfs_log)
         # for processed_input in processed:
         #     sender_sock.sendall(to_bytes(processed_input))
         processed.clear()
+        local_log.truncate(0)
+        print(f"PROCESSED: {processed}")
+
 
 def pipe_vms(job):
     process = job["PROCESS"] # subprocess popen
     vms = job["VM"] # next stage vms
     job_id = job["JOB_ID"] # job_id
-    local_processed_log = open(get_hydfs_log_name(job), "wb") # Log file
+    log_name = get_hydfs_log_name(job)
+    local_processed_log = open(log_name, "wb") # Log file
+    create(log_name, log_name)
     
     socks = []
     queues = []
@@ -98,33 +105,40 @@ def pipe_vms(job):
     processed_data = defaultdict(list)
     line_number = 0
 
-    while process.poll() is None:
-        print("new line")
-        new_line = get_process_output(process)
-        print("recv")
-
-        if (new_line == b""):
+    while 1:
+        process_state = process.poll() 
+        if (process_state is not None):
+            print(f"Process ended with {process_state}")
             break
+        new_line = get_process_output(process)
+
+        if (new_line == ""):
+            print("EMPTY LINE")
+            break
+        local_processed_log.write(new_line)
         new_line = new_line.decode('utf-8') # Stdout
         dict_data = decode_key_val(new_line) # Get dict
         
         print(f"STDOUT Stream: {new_line}")
-        vm_id, stream_id = dict_data["key"] .split(':')
+        vm_id, stream_id = dict_data["key"].split(':')
+
         key_vals = dict_data["value"]
         vm_id = int(vm_id)
-
         processed_data[vm_id].append(stream_id) # Already processed on sync return
 
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
-            randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
-            queues[output_idx].put((line_number, key_val))
-            json_string = encode_key_val(line_number, key_val).encode()
-
+            json_key_val = encode_key_val(key_val[0], key_val[1])
+            queues[output_idx].put((line_number, json_key_val))
+            json_string = encode_key_val(line_number, json_key_val).encode()
             send_int(socks[output_idx], len(json_string))
             socks[output_idx].sendall(json_string)
             line_number += 1
-    
+        
+        randomized_sync_log(local_processed_log, log_name, HOSTS[vm_id - 1], processed_data[vm_id])
+        print("new input")
+    print("FINISHED VMS")
+
     # Close socks
     for thread in threads:
         thread.join()
@@ -138,13 +152,18 @@ def pipe_file(job):
     process = job["PROCESS"]
     output_file = job["OUTPUT"]
     processed_data = defaultdict(list)
+    # local_processed_log = open(get_hydfs_log_name(job), "wb") # Log file
     
     with open(output_file, "wb") as output:
-        while process.poll() is None:
+        while 1:
+            process_state = process.poll() 
+            if (process_state is not None):
+                print(f"Process ended with {process_state}")
+                break
             
             new_line = get_process_output(process)
-            
-            if (new_line == b""):
+            if (new_line == ""):
+                print("EL 2")
                 break
             
             print(f"NEW LINE: {new_line}")
@@ -157,11 +176,12 @@ def pipe_file(job):
             
             processed_data[vm_id].append(stream_id)
 
-            for key_val in key_vals:
-                
+            for key_val in key_vals:    
                 output.write(f"{key_val[0]}:{key_val[1]}\n".encode())
-                randomized_sync_log(output.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
+            randomized_sync_log(output, output_file, HOSTS[vm_id - 1], processed_data[vm_id])
+            print("new input")
 
+    print("FINISHED FILE")
     append(machine_id, output_file, output_file)
     merge(output_file)
 
@@ -234,7 +254,7 @@ def run_job(client: socket.socket):
         p_input = encode_key_val(new_key, stream) + "\n"
         pipe_input(process, p_input.encode())
 
-    process.stdin.close()    
+    # process.stdin.close()    
 
 def partition_file(leader_socket: socket.socket):
     # We should ignore unmerged data so only bring next stage vm id
