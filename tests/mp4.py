@@ -11,9 +11,12 @@ file =  open("output.txt", "w")
 for line in sys.stdin:  # Read from stdin line by line
     file.write(line)
     file.flush()
-
+    input_dict = decode_key_val(line)
     new_key = f"{machine_id}:{line}" # new_key
-    result = user_defined_job("a", "1") # User defined function
+
+    value_dict = decode_key_val(input_dict["value"])
+    result = user_defined_job(value_dict["key"], value_dict["value"]) # User defined function
+
     json.dump({"key": new_key, "value": result}, sys.stdout)
     sys.stdout.flush()
 
