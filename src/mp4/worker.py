@@ -10,7 +10,7 @@ from collections import defaultdict
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
 from src.mp4.constants import READ, EXECUTE, RUN
-from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge
+from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip
 from src.shared.DataStructures.Dict import Dict
 
 SYNC_PROBABILITY = 1/500
@@ -98,7 +98,10 @@ def pipe_vms(job):
     line_number = 0
 
     while process.poll() is None:
+        print("new line")
         new_line = get_process_output(process)
+        print("recv")
+
         if (new_line == b""):
             break
         new_line = new_line.decode('utf-8') # Stdout
@@ -203,7 +206,9 @@ def run_job(client: socket.socket):
 
 
     process = job["PROCESS"] # subprocess Popen()
-    client_id = client.getpeername()[0] # If we need it
+    ip = client.getpeername()[0]
+    addr = socket.gethostbyaddr(ip)[0]
+    client_id = id_from_ip(addr) # If we need it
 
     while (1):
         data_length = client.recv(4)
@@ -223,7 +228,7 @@ def run_job(client: socket.socket):
         
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
-        p_input = encode_key_val(new_key, stream)
+        p_input = encode_key_val(new_key, stream) + '\n'
         pipe_input(process, p_input.encode())
 
     process.stdin.close()    
@@ -277,6 +282,7 @@ def handle_client(client: socket.socket, ip_address):
     elif (mode == EXECUTE):
         prepare_execution(client)
     elif (mode == RUN):
+        print("HELLO")
         run_job(client)
 
 
