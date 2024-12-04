@@ -118,8 +118,9 @@ def pipe_vms(job):
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
             randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
-            queues[output_idx].put((line_number, key_val))
-            json_string = encode_key_val(line_number, key_val).encode()
+            json_key_val = encode_key_val(key_val[0], key_val[1])
+            queues[output_idx].put((line_number, json_key_val))
+            json_string = encode_key_val(line_number, json_key_val).encode()
 
             send_int(socks[output_idx], len(json_string))
             socks[output_idx].sendall(json_string)

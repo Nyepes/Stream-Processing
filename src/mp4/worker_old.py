@@ -79,11 +79,11 @@ def decode_key_val(line):
 def randomized_sync_log(local_log, hydfs_log, sender_sock, processed: list):
     # TODO: Send ack of ids that were already processed not sure how to do quite yet
     if (random.random() <= SYNC_PROBABILITY):
-        append(machine_id, local_log, hydfs_log)
-        merge(hydfs_log)
-        for processed_input in processed:
-            sender_sock.sendall(to_bytes(processed_input))
-        processed.clear()
+        # append(machine_id, local_log, hydfs_log)
+        # merge(hydfs_log)
+        # for processed_input in processed:
+        #     sender_sock.sendall(to_bytes(processed_input))
+        # processed.clear()
 
 def resend_queue(queue, sock):
     new_queue = Queue()
@@ -194,7 +194,7 @@ def pipe_file(job):
             # TODO: change hydfs file to just one
             randomized_sync_log(output, get_hydfs_log_name(job), HOSTS[vm_id], processed_data[vm_id])
 
-    append(machine_id, output_file, output_file)
+    # append(machine_id, output_file, output_file)
 
 def handle_output(job_id):
     job = current_jobs.get(job_id)
