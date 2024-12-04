@@ -147,6 +147,7 @@ def pipe_file(job):
             if (new_line == b""):
                 break
             
+            print(f"NEW LINE: {new_line}")
             new_line = new_line.decode('utf-8')
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             
@@ -198,6 +199,7 @@ def prepare_execution(leader_socket):
 
 
 def pipe_input(process, line):
+    sleep(0.01)
     process.stdin.write(line)
     process.stdin.flush()
 
@@ -205,17 +207,17 @@ def run_job(client: socket.socket):
     job_id = receive_int(client) # MODE + JOB_ID
     job = current_jobs.get(job_id) 
 
-
     process = job["PROCESS"] # subprocess Popen()
-    ip = client.getpeername()[0]
-    addr = socket.gethostbyaddr(ip)[0]
-    client_id = id_from_ip(addr) # If we need it
+    client_id = id_from_ip(socket.gethostbyaddr(client.getpeername()[0])[0]) # If we need it
 
     while (1):
         data_length = client.recv(4)
+        print(f"DATA LENGTH: {data_length}")
         if (data_length == b''):
+            print("BREAK")
             break
         data_length = from_bytes(data_length)
+        print(f"DATA LENGTH 2: {data_length}")
         data = client.recv(data_length).decode('utf-8')
         received_stream = decode_key_val(data)
         print(f"RECEIVED STREAM: {received_stream}")
@@ -229,7 +231,7 @@ def run_job(client: socket.socket):
         
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
-        p_input = encode_key_val(new_key, stream) + '\n'
+        p_input = encode_key_val(new_key, stream) + "\n"
         pipe_input(process, p_input.encode())
 
     process.stdin.close()    
