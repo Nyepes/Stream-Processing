@@ -49,9 +49,8 @@ def encode_key_val(key:str, val:str, in_bytes = True):
 def decode_key_val(line):
     return json.loads(line)
 
-def get_process_output(process, local_file):
+def get_process_output(process):
     line = process.stdout.readline() # <input: [(key,val), (key,val),...]>
-    local_file.write(line) # Store in persistent storage
     return line
 
 
@@ -99,7 +98,7 @@ def pipe_vms(job):
     line_number = 0
 
     while process.poll() is None:
-        new_line = get_process_output(process, local_processed_log)
+        new_line = get_process_output(process)
         if (new_line == b""):
             break
         new_line = new_line.decode('utf-8') # Stdout
@@ -136,10 +135,10 @@ def pipe_file(job):
     output_file = job["OUTPUT"]
     processed_data = defaultdict(list)
     
-    with open(output_file, "w") as output:
+    with open(output_file, "wb") as output:
         while process.poll() is None:
             
-            new_line = get_process_output(process, output)
+            new_line = get_process_output(process)
             
             if (new_line == b""):
                 break
@@ -155,8 +154,8 @@ def pipe_file(job):
 
             for key_val in key_vals:
                 
-                output.write(f"{key_val[0]}:{key_val[1]}\n")
-                randomized_sync_log(local_processed_log.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
+                output.write(f"{key_val[0]}:{key_val[1]}\n".encode())
+                randomized_sync_log(output.name, get_hydfs_log_name(job), HOSTS[vm_id - 1], processed_data[vm_id])
 
     append(machine_id, output_file, output_file)
     merge(output_file)

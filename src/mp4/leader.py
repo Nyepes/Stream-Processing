@@ -36,17 +36,23 @@ def request_read(job_id, file, readers, workers, num_tasks):
         }
         send_request(READ, request, readers[i])
 
-def request_intermediate_stage(job_id, vms, binary_path):
-    for vm in vms:
+def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
+    for vm in stage_vms:
         request = {
             "PATH": binary_path,
-            "VM": vms,
+            "VM": next_stage,
             "JOB_ID": job_id,
         }
         send_request(EXECUTE, request, vm)
 
-def request_final_stage(job_id, output_file, binary_path):
-    return
+def request_final_stage(job_id, writers, output_file, binary_path):
+    for vm in writers:
+        request = {
+            "PATH": binary_path,
+            "OUTPUT": output_file,
+            "JOB_ID": job_id,
+        }
+        send_request(EXECUTE, request, vm)
 
 def get_readers(num_jobs, hydfs_dir):
     file_owners = get_replica_ids(generate_sha1(hydfs_dir))
@@ -96,10 +102,12 @@ def start_job(job_data):
     for worker in workers:
         member_jobs.increment_list(worker, job_id)
 
+    stage_2_workers = workers[: len(workers) // 2]
+    stage_3_workers = workers[len(workers) // 2:]
 
-
-    request_intermediate_stage(job_id, workers, op_1_path)
-    request_read(job_id, hydfs_dir, readers, workers[: len(workers) // 2], num_tasks)
+    request_final_stage(job_id, stage_3_workers, output_dir, op_1_path)
+    request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
+    request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
     
 def handle_client(client_sock, ip):
     mode = client_sock.recv(1)
