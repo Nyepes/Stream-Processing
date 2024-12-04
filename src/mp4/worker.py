@@ -103,7 +103,7 @@ def pipe_vms(job):
     
     # Pipe Data
     processed_data = defaultdict(list)
-    line_number = 0
+    line_number = 1
 
     while 1:
         process_state = process.poll() 
@@ -125,7 +125,9 @@ def pipe_vms(job):
         key_vals = dict_data["value"]
         vm_id = int(vm_id)
         processed_data[vm_id].append(stream_id) # Already processed on sync return
-
+        if (key_vals is None):
+            continue
+        sys.stdin.flush()
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
             json_key_val = encode_key_val(key_val[0], key_val[1])
@@ -136,7 +138,7 @@ def pipe_vms(job):
             line_number += 1
         
         randomized_sync_log(local_processed_log, log_name, HOSTS[vm_id - 1], processed_data[vm_id])
-        print("new input")
+        # print("new input")
     print("FINISHED VMS")
 
     # Close socks
@@ -280,7 +282,7 @@ def partition_file(leader_socket: socket.socket):
         file_path = get_server_file_path(filename)
 
         with open(file_path, "r") as file:
-            linenumber = 0
+            linenumber = 1
             while (1):
                 line = file.readline()
                 if (not line):
