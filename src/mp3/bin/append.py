@@ -15,7 +15,7 @@ if __name__ == "__main__":
     my_id = id_from_ip(socket.gethostname())
     local_file = sys.argv[1]
     file_name = sys.argv[2]
-    append(my_id, local_file, file_name)
+    res = append(my_id, local_file, file_name)
     
     if (res < 0):
          print("Append Failed")

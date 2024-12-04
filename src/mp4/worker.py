@@ -13,7 +13,7 @@ from src.mp4.constants import READ, EXECUTE, RUN
 from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
 from src.shared.DataStructures.Dict import Dict
 
-SYNC_PROBABILITY = 1/10
+SYNC_PROBABILITY = 1/1000
 
 ## Plan
 

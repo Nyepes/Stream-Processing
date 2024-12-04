@@ -66,7 +66,12 @@ def handle_merge(file_name, s, ip_address):
 
     for chunk, status in data:  # send memtable data
         if not chunk: continue
-        s.sendall(len(chunk).to_bytes(8, byteorder="little") + chunk + status.encode())
+        # print(chunk.decode())
+        # length = len(chunk)
+        # length = length.to_bytes(4, byteorder="little")
+        # print(int.from_bytes(length, byteorder="little"))
+
+        s.sendall(chunk + status.encode())
     
     s.shutdown(socket.SHUT_WR)  # close write end
 
@@ -318,11 +323,13 @@ def merge_file(file_name):
         max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))  # receive version and update
         
         while (1):  # receive memtable data
-            read = s.recv(8)
-            if (read == b''): break
-            
-            chunk_size = int.from_bytes(read, byteorder="little")
-            content = s.recv(chunk_size)
+            # read = s.recv(4)
+            # chunk_size = int.from_bytes(read, byteorder="little")
+            # print(chunk_size)
+            content = s.recv(1024 * 1024)
+            if (content == b''): break
+
+            # print(f"ACTUAL LEN {len(content)}")
             status = s.recv(1)
             
             buffer.append((content.decode('utf-8'), status.decode('utf-8')))
