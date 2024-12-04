@@ -56,6 +56,7 @@ def get_process_output(process):
 
 def randomized_sync_log(local_log, hydfs_log, sender_sock, processed: list):
     # TODO: Send ack of ids that were already processed not sure how to do quite yet
+    return
     if (random.random() <= SYNC_PROBABILITY or len(processed) >= 500):
         append(machine_id, local_log, hydfs_log)
         merge(hydfs_log)
