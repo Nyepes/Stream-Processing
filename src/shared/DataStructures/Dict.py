@@ -57,7 +57,10 @@ class Dict:
             A copy of the value associated with the key.
         """
         with self.lock:
-            return self.dict[key].copy()
+            val = self.dict[key]
+            if isinstance(val, bool):
+                return val
+            return val.copy()
 
     def increment(self, key):
         """

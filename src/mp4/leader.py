@@ -19,14 +19,13 @@ max_job_id = 0
 def send_request(type, request_data, to):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
         server_sock.settimeout(RECEIVE_TIMEOUT)
-        print(to)
         server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
         server_sock.sendall(type.encode('utf-8'))
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
+        server_sock.recv(1)
 
 
 def request_read(job_id, file, readers, workers, num_tasks):
-    print(f"NUM_TASKS: {num_tasks}")
     for i in range(num_tasks):
         request = {
             "FILE": file,
@@ -37,11 +36,20 @@ def request_read(job_id, file, readers, workers, num_tasks):
         }
         send_request(READ, request, readers[i])
 
-def request_intermediate_stage(job_id, vms, binary_path):
-    for vm in vms:
+def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
+    for vm in stage_vms:
         request = {
             "PATH": binary_path,
-            "VM": vms,
+            "VM": next_stage,
+            "JOB_ID": job_id,
+        }
+        send_request(EXECUTE, request, vm)
+
+def request_final_stage(job_id, writers, output_file, binary_path):
+    for vm in writers:
+        request = {
+            "PATH": binary_path,
+            "OUTPUT": output_file,
             "JOB_ID": job_id,
         }
         send_request(EXECUTE, request, vm)
@@ -54,11 +62,10 @@ def get_workers(num_tasks):
     num_jobs = []
     global member_jobs
     jobs = member_jobs.items()
-    print(jobs)
-
     for job in jobs:
         num_jobs.append((len(job[1]), job[0])) #Number of jobs and job number
-    num_jobs.sort()
+    
+    num_jobs.sort(reverse=False)
     ans = []
     for i in range(num_tasks):
         ans.append(num_jobs[i % len(num_jobs)][1]) # The node id with lowest amount of jobs
@@ -77,6 +84,10 @@ def start_job(job_data):
     # Maybe create file??? before starting
 
     readers = get_readers(num_tasks, hydfs_dir)
+
+    for reader in readers:
+        member_jobs.increment_list(reader, job_id)
+
     workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
 
     print(f"workers: {workers}")
@@ -88,21 +99,18 @@ def start_job(job_data):
 
     cur_jobs.add(job_id, job_data)
 
-    for reader in readers:
-        member_jobs.increment_list(reader, job_id)
-
     for worker in workers:
         member_jobs.increment_list(worker, job_id)
 
+    stage_2_workers = workers[: len(workers) // 2]
+    stage_3_workers = workers[len(workers) // 2:]
 
-
-    request_intermediate_stage(job_id, workers, op_1_path)
-    request_read(job_id, hydfs_dir, readers, workers[: len(workers) // 2], num_tasks)
+    request_final_stage(job_id, stage_3_workers, output_dir, op_2_path)
+    request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
+    request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
     
 def handle_client(client_sock, ip):
-    print(ip)
     mode = client_sock.recv(1)
-    print(mode)
     if (mode == b"S"):
         # Start Job
         data = client_sock.recv(1024 * 1024)
@@ -130,14 +138,14 @@ def start_server(machine_id):
     global cur_jobs, member_jobs
     cur_jobs = Dict(dict)
     member_jobs = Dict(list)
-
     sleep(7)
     
     global member_list
     member_list = get_machines() + [machine_id]
     for member in member_list:
         member_jobs.add(member, [])
-    
+    print(member_list)
+    print(member_jobs)
     while True:
         try:
             client_socket, ip_address = server.accept()
