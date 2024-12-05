@@ -5,4 +5,4 @@
 
 # ./run.sh create tests/TrafficSigns_10000 TrafficSigns_10000
 
-./run.sh Rainstorm "python tests/mp4_demo1.py a" "python tests/mp4_demo2.py" TrafficSigns_1000 output 1
+./run.sh Rainstorm "python tests/mp4_demo1.py Unpunched" "python tests/mp4_demo2.py" TrafficSigns_1000 output 1

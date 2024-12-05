@@ -105,7 +105,7 @@ def start_job(job_data):
     stage_2_workers = workers[: len(workers) // 2]
     stage_3_workers = workers[len(workers) // 2:]
 
-    request_final_stage(job_id, stage_3_workers, output_dir, op_1_path)
+    request_final_stage(job_id, stage_3_workers, output_dir, op_2_path)
     request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
     request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
     
