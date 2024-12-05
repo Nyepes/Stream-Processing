@@ -3,7 +3,6 @@ import sys
 from collections import defaultdict
 
 machine_id = sys.argv[1]
-
 counts = defaultdict(int)
 
 def count_vals(key, value):
