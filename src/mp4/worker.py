@@ -182,6 +182,7 @@ def pipe_vms(job):
             continue
         local_processed_log.write(new_line)
         new_line = new_line.decode('utf-8') # Stdout
+        # print(new_line)
         dict_data = decode_key_val(new_line) # Get dict
         
         vm_id, stream_id = dict_data["key"].split(':')
@@ -296,18 +297,9 @@ def run_job(client: socket.socket):
         if (data_length == b''):
             break
         data_length = from_bytes(data_length)
-        try:
-            rec = client.recv(data_length)
-            data = rec.decode('utf-8')
-        except:
-            print("DECODING")
-            print(data_length, len(rec), rec)
-        try:
-            received_stream = decode_key_val(data)
-        except:
-            print(data_length, len(rec), rec)
-            print("NOT JSON")
-            print(data)
+        data = client.recv(data_length).decode('utf-8')
+        # print(data_length, data)
+        received_stream = decode_key_val(data)
         line_number = received_stream["key"]
         
         stream = received_stream["value"]
@@ -377,6 +369,7 @@ def handle_client(client: socket.socket, ip_address):
         open_sockets.add(str(ip_address), thread_sock) # IP address to client socket
         partition_file(thread_sock)
     elif (mode == EXECUTE):
+        print("E")
         prepare_execution(client)
     elif (mode == RUN):
         thread_sock = ThreadSock(client)
