@@ -46,7 +46,7 @@ class Dict:
                 val = [val]
             self.dict[key] += val
 
-    def get(self, key):
+    def get(self, key, copy=True):
         """
         Retrieves a copy of the value associated with the key.
 
@@ -57,8 +57,10 @@ class Dict:
             A copy of the value associated with the key.
         """
         with self.lock:
+            if (key not in self.dict):
+                print("NOT FOUND", key)
             val = self.dict[key]
-            if isinstance(val, bool):
+            if isinstance(val, bool) or copy == False:
                 return val
             return val.copy()
 
