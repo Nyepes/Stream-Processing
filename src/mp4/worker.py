@@ -15,6 +15,8 @@ from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLI
 from src.mp4.constants import READ, EXECUTE, RUN
 from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
 from src.shared.DataStructures.Dict import Dict
+from src.shared.ThreadSock import ThreadSock
+
 
 SYNC_PROBABILITY = 1/1000
 
@@ -67,7 +69,6 @@ def get_process_output(process, poller, timeout_sec = 5):
 
 
 def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
-    # TODO: Send ack of ids that were already processed not sure how to do quite yet
     cur_time = time()
     if (last_merge + 4 < cur_time):
         print("SYNCING")
@@ -80,11 +81,6 @@ def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
             val = processed.get()
             sender_sock = open_sockets.get(val[0], copy=False)
             send_int(sender_sock, int(val[1]))
-            # try:
-            # sender_sock.sendall(to_bytes(processed_input))
-            # except:
-            #     pass
-                # TODO: Check failures and change sockets
         local_log.truncate(0)
         local_log.seek(0, 0)
 
@@ -99,15 +95,19 @@ def listen_acks(queue, sock, queue_lock):
             print("STARTING SOCKET")
             ack_num = sock.recv(4)
         except (ConnectionRefusedError, socket.timeout):
-            with queue_lock:
-                queue_copy = Queue(maxsize=1024)
-                queue_len = queue.qsize()
-                for i in range(queue_len):
-                    val = queue.get()
-                    queue_copy.put(val)
-                    queue.put(val)
-            print("resending")
-            resend_queue(queue_copy, sock)
+            
+            queue_len = queue.qsize()
+
+            if (queue_len > 0):
+                with queue_lock:
+                    queue_copy = Queue(maxsize=1024)
+                    for i in range(queue_len):
+                        val = queue.get()
+                        queue_copy.put(val)
+                        queue.put(val)
+                print("resending")
+            
+                resend_queue(queue_copy, sock)
             continue
 
         print("RECEIVED VALUE")
@@ -126,7 +126,8 @@ def listen_acks(queue, sock, queue_lock):
 def resend_queue(queue, sock): #(line_number, key_val)
     while(not queue.empty()):
         line_number, key_val = queue.get()
-        json_encoded = encode_key_val(line_number, key_val).encode()
+        json_encoded = encode_key_val(line_number, key_val).encode('utf-8')
+        print(json_encoded)
         send_int(sock, len(json_encoded))
         sock.sendall(json_encoded)
 
@@ -154,8 +155,9 @@ def pipe_vms(job):
         vm_sock.sendall(RUN.encode('utf-8'))
         # Send job_id
         send_int(vm_sock, job_id)
+        thread_safe = ThreadSock(vm_sock)
+        socks.append(thread_safe)
 
-        socks.append(vm_sock)
 
         q = Queue(maxsize = 1024) # Every next stage vm has size of 1024 before blocks
         queues.append(q)
@@ -163,7 +165,7 @@ def pipe_vms(job):
         queue_lock = threading.Lock()
         queue_locks.append(queue_lock)
 
-        thread = threading.Thread(target=listen_acks, args=(q, vm_sock, queue_lock))
+        thread = threading.Thread(target=listen_acks, args=(q, thread_safe, queue_lock))
         threads.append(thread)
         thread.start()
     
@@ -291,10 +293,7 @@ def run_job(client: socket.socket):
 
 
     process = job["PROCESS"] # subprocess Popen()
-    client_id = client.getpeername()
-    # ip = client.getpeername()[0]
-    # addr = socket.gethostbyaddr(ip)[0]
-    # client_id = id_from_ip(addr) # If we need it
+    client_id = client.get_socket().getpeername()
 
     while (1):
         data_length = client.recv(4)
@@ -371,14 +370,16 @@ def partition_file(leader_socket: socket.socket):
 def handle_client(client: socket.socket, ip_address):
     mode = client.recv(1).decode('utf-8')
     if (mode == READ):
-        open_sockets.add(str(ip_address), client) # IP address to client socket
-        partition_file(client)
+        thread_sock = ThreadSock(client)
+        open_sockets.add(str(ip_address), thread_sock) # IP address to client socket
+        partition_file(thread_sock)
     elif (mode == EXECUTE):
         print("E")
         prepare_execution(client)
     elif (mode == RUN):
-        open_sockets.add(str(ip_address), client) # IP address to client socket
-        run_job(client)
+        thread_sock = ThreadSock(client)
+        open_sockets.add(str(ip_address), thread_sock) # IP address to client socket
+        run_job(thread_sock)
 
 
 

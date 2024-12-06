@@ -15,6 +15,7 @@ machine_id = int(sys.argv[1])
 cur_jobs = None
 member_jobs = None
 max_job_id = 0
+member_list = []
 
 def send_request(type, request_data, to):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
@@ -71,7 +72,17 @@ def get_workers(num_tasks):
         ans.append(num_jobs[i % len(num_jobs)][1]) # The node id with lowest amount of jobs
     return ans
 
+def update_membership():
+    global member_list
+    member_set = set(member_list)
+    new_memberlist = set(get_machines())
+    new_members = new_memberlist - member_set
+    for member in new_members:
+        member_jobs.add(member, [])
+    member_list = new_memberlist
+
 def start_job(job_data):
+    update_membership()
     global max_job_id
 
     job_id = max_job_id
@@ -108,7 +119,20 @@ def start_job(job_data):
     request_final_stage(job_id, stage_3_workers, output_dir, op_2_path)
     request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
     request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
-    
+
+def handle_failed(failed):
+    print(failed)
+def poll_failures():
+    global member_list
+    while (1):
+        sleep(1)
+        new_machines = set(get_machines())
+        failed = set(member_list) - new_machines
+        if (len(failed) > 0):
+            handle_failed(failed)
+            member_list = new_machines
+        
+ 
 def handle_client(client_sock, ip):
     mode = client_sock.recv(1)
     if (mode == b"S"):
@@ -117,6 +141,10 @@ def handle_client(client_sock, ip):
         job_data = json.loads(data.decode('utf-8'))
         print(f"Starting Job: {job_data}")
         start_job(job_data)
+        poll_failures()
+
+
+
 
 def start_server(machine_id):
     """
