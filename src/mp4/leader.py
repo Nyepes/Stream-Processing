@@ -25,7 +25,6 @@ def send_request(type, request_data, to):
         server_sock.sendall(json.dumps(request_data).encode('utf-8'))
         server_sock.recv(1)
 
-
 def request_read(job_id, file, readers, workers, num_tasks):
     for i in range(num_tasks):
         request = {
@@ -104,24 +103,59 @@ def start_job(job_data):
     print(f"workers: {workers}")
     print(f"readers: {readers}")
 
+    stage_2_workers = workers[: len(workers) // 2]
+    stage_3_workers = workers[len(workers) // 2:]
 
     job_data["READERS"] = readers
-    job_data["WORKERS"] = workers
+    job_data["STAGE2"] = stage_2_workers
+    job_data["STAGE3"] = stage_3_workers
+
 
     cur_jobs.add(job_id, job_data)
 
     for worker in workers:
         member_jobs.increment_list(worker, job_id)
 
-    stage_2_workers = workers[: len(workers) // 2]
-    stage_3_workers = workers[len(workers) // 2:]
-
     request_final_stage(job_id, stage_3_workers, output_dir, op_2_path)
     request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
     request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
 
+
+def send_update(to, config):
+    return
+
 def handle_failed(failed):
+
+    new_vm = get_workers(1) # Find replacement id
+
+    affected_jobs = member_jobs.get(failed)
+    print(affected_jobs)
+    for job in affected_jobs:
+        job_config = cur_jobs.get(job)
+        all_nodes = job_config["READERS"] + job_config["STAGE2"] + job_config["STAGE3"]
+        num_tasks = job_config["NUM_TASKS"]
+        indices = [index for index, element in enumerate(my_list) if element == value]
+        config = [""]
+        for idx in indices:
+            if (idx < num_tasks): # Reader
+                pass
+            if (num_tasks <= idx < num_tasks):
+                # Update one reader
+                config = {"JOB_ID": job_id, KEY: "stage2", "VMS":[new_vm], "IDX": 0}
+                send_update(job_config["READERS"][idx % num_tasks])
+                new_vms = cur_jobs["STAGE2"]
+                new_vms[idx % num_tasks] = new_vm
+                config = {"JOB_ID": job_id, KEY: "stage2", "VMS": new_vms, "IDX": idx % num_tasks}
+                for stage_3 in job_config["STAGE3"]:
+                    send_update(stage_3, config)
+
+
+            if (num_tasks <= idx < num_tasks):
+                pass
+
+
     print(failed)
+
 def poll_failures():
     global member_list
     while (1):
@@ -174,17 +208,14 @@ def start_server(machine_id):
         member_jobs.add(member, [])
     print(member_list)
     print(member_jobs)
+
     while True:
         try:
             client_socket, ip_address = server.accept()
         except (ConnectionRefusedError, socket.timeout):
-            # TODO: See if someone next or prev
             continue
 
-        # Creates a new thread for each client
         client_handler = threading.Thread(target=handle_client, args=(client_socket, ip_address,))
-        
-        # sets daemon to true so that there is no need of joining threads once thread finishes
         client_handler.daemon = True
         client_handler.start()
 
