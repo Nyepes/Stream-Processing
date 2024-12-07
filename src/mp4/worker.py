@@ -200,7 +200,7 @@ def pipe_vms(job):
             queues[output_idx].put((line_number, json_key_val))
             json_string = encode_key_val(line_number, json_key_val)
             print(json_string)
-            # send_data(vms[output_idx], json_string)
+            send_data(vms[output_idx], json_string)
             line_number += 1
         last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
     
