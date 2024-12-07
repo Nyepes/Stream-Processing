@@ -37,8 +37,8 @@ if __name__ == "__main__":
     vm_id = sys.argv[2:num_files + 2]
     local_files = sys.argv[num_files + 2:]
 
-    print(vm_id)
-    print(local_files)
+    # print(vm_id)
+    # print(local_files)
     for i in range(len(local_files)):
         request_multiappend(int(vm_id[i]), server_file, local_files[i])
 

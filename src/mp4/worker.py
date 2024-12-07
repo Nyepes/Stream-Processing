@@ -5,13 +5,18 @@ import json
 import subprocess
 import sys
 import random
+import copy
+import select
+
 from queue import Queue
 from collections import defaultdict
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
-from src.mp4.constants import READ, EXECUTE, RUN
+from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
 from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
 from src.shared.DataStructures.Dict import Dict
+from src.shared.ThreadSock import ThreadSock
+
 
 SYNC_PROBABILITY = 1/1000
 
@@ -25,6 +30,7 @@ current_jobs = None # Job Id to configuration of the job (executable, next stage
 machine_id = None # Id of the machine
 processed_streams = None # Dict (<sender, line_num>)
 
+open_sockets = None # Dict(<stage_id, vm_id, "R"/"S">) # Connection to which task and vm
 
 def send_int(sock, int_val: int):
     sock.sendall(int_val.to_bytes(4, byteorder="little"))
@@ -49,151 +55,200 @@ def encode_key_val(key:str, val:str, in_bytes = True):
 def decode_key_val(line):
     return json.loads(line)
 
-def get_process_output(process):
-    line = process.stdout.readline() # <input: [(key,val), (key,val),...]>
-    return line
+def get_process_output(process, poller, timeout_sec = 5):
+    if (poller is None):
+        line = process.stdout.readline() # <input: [(key,val), (key,val),...]
+        return line
+    events = poller.poll(timeout_sec * 1000)
+    # print("EVENTS", events)
+    if (events):
+        line = process.stdout.readline() # <input: [(key,val), (key,val),...]
+        return line
+    return ""
 
 
-def randomized_sync_log(local_log, hydfs_log, processed: list):
-    # TODO: Send ack of ids that were already processed not sure how to do quite yet
-    while (1):
-        sleep(5)
+
+def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
+    cur_time = time()
+    if (last_merge + 4 < cur_time):
         local_log.flush()
         log_name = local_log.name
+        
         append(machine_id, log_name, hydfs_log)
-        merge(hydfs_log)
-        # for processed_input in processed:
-        #     sender_sock.sendall(to_bytes(processed_input))
-        processed.clear()
+        # merge(hydfs_log)
+        while (not processed.empty()):
+            val = processed.get()
+            sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
+            send_int(sender_sock, int(val[1]))
         local_log.truncate(0)
         local_log.seek(0, 0)
 
-        
+    return time()
+      
+def listen_acks(queue, socks, sock_idx, queue_lock):
+    sock = socks[sock_idx]
+    while(1):
+        if (queue.empty()): 
+            continue
+        try:
+            sleep(5)
+            ack_num = sock.recv(4)
+        except (ConnectionResetError):
+            sleep(2)
+            sock = socks[sock_idx]
+            continue
+        except (ConnectionRefusedError, socket.timeout):
+            queue_len = queue.qsize()
 
+            if (queue_len > 0):
+                with queue_lock:
+                    queue_copy = Queue(maxsize=10240)
+                    for i in range(queue_len):
+                        val = queue.get()
+                        queue_copy.put(val)
+                        queue.put(val)
+                try:
+                    resend_queue(queue_copy, sock)
+                except:
+                    continue
+            continue
+
+        if (ack_num == b""):
+            break
+
+        ack = from_bytes(ack_num)
+
+        linenumber, value = queue.queue[0]
+        if (linenumber == ack):
+            queue.get()
+        
+def resend_queue(queue, sock): #(line_number, key_val)
+    while(not queue.empty()):
+        line_number, key_val = queue.get()
+        json_encoded = encode_key_val(line_number, key_val).encode('utf-8')
+        # send_data(sock_id, json_encoded)
+        send_int(sock, len(json_encoded))
+        sock.sendall(json_encoded)
 
 def pipe_vms(job):
+    # return
     process = job["PROCESS"] # subprocess popen
     vms = job["VM"] # next stage vms
-    job_id = job["JOB_ID"] # job_id
+    poller = job["POLLER"]
+    stage_id = job["JOB_ID"] # job_id
+
     log_name = get_hydfs_log_name(job)
-    print(f"VMS: {vms}")
     local_processed_log = open(log_name, "wb") # Log file
     create(log_name, log_name)
     
     socks = []
     queues = []
     threads = []
-
+    queue_locks = []
     # Set UP
-    for vm in vms:
+    for i, vm in enumerate(vms):
         # Create connection
-        vm_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        vm_sock.connect((HOSTS[vm - 1], RAINSTORM_PORT))
-        
-        # Send RUN request
-        vm_sock.sendall(RUN.encode('utf-8'))
-        # Send job_id
-        send_int(vm_sock, job_id)
+        sock = setup_connection(vm, stage_id + 1)
+        thread_safe = ThreadSock(sock)
+        job["SOCKETS"][i] = thread_safe
+        # sock_id = f"{stage_id + 1}{vm}S"
+        # open_sockets.add(sock_id, thread_safe)
 
-        socks.append(vm_sock)
 
-        q = Queue(maxsize = 1024) # Every next stage vm has size of 1024 before blocks
+        q = Queue(maxsize = 10240) # Every next stage vm has size of 1024 before blocks
         queues.append(q)
-        # TODO: Listen Acks
-        # thread = threading.Thread(target=listen_acks, args=(q, vm_sock))
-        # threads.append(thread)
-        # thread.start()
+        queue_lock = threading.Lock()
+        queue_locks.append(queue_lock)
+
+        thread = threading.Thread(target=listen_acks, args=(q, job["SOCKETS"], i, queue_lock))
+        threads.append(thread)
+        thread.start()
     
     # Pipe Data
-    processed_data = defaultdict(list)
+    processed_data = Queue()
     line_number = 1
     last_merge = time()
-
-    thread = threading.Thread(target=randomized_sync_log, args=(local_processed_log, log_name, processed_data))
-    thread.deamon = True
-    thread.start()
-    
+   
     while 1:
         process_state = process.poll() 
         if (process_state is not None):
             break
-        new_line = get_process_output(process)
+        new_line = get_process_output(process, poller)
 
-        if (new_line == ""):
-            break
+        if (new_line == ""): # Timeout
+            print("TO")
+            last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+            continue
+    
         local_processed_log.write(new_line)
         new_line = new_line.decode('utf-8') # Stdout
-        dict_data = decode_key_val(new_line) # Get dict
+        print("PROCESSED", new_line)
         
+        dict_data = decode_key_val(new_line) # Get dict
         vm_id, stream_id = dict_data["key"].split(':')
-
         key_vals = dict_data["value"]
-        vm_id = int(vm_id)
-        processed_data[vm_id].append(stream_id) # Already processed on sync return
+
+        processed_data.put((f"{stage_id - 1}{vm_id}R", stream_id)) # Already processed on sync return
         if (key_vals is None):
             continue
         for key_val in key_vals:
             output_idx = generate_sha1(str(key_val[0])) % len(vms)
             json_key_val = encode_key_val(key_val[0], key_val[1])
-            # queues[output_idx].put((line_number, json_key_val))
-            json_string = encode_key_val(line_number, json_key_val).encode()
-            send_int(socks[output_idx], len(json_string))
-            socks[output_idx].sendall(json_string)
+            queues[output_idx].put((line_number, json_key_val))
+            json_string = encode_key_val(line_number, json_key_val)
+            send_data(job["SOCKETS"], output_idx, json_string)
             line_number += 1
+        last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+    
     # Close socks
     for thread in threads:
         thread.join()
-    
-    for sock in socks:
-        sock.close()
 
     local_processed_log.close()
 
-
 def pipe_file(job):
     process = job["PROCESS"]
+    poller = job["POLLER"]
     output_file = job["OUTPUT"]
-    processed_data = defaultdict(list)
-    # local_processed_log = open(get_hydfs_log_name(job), "wb") # Log file
+    stage_id = job["JOB_ID"] # job_id
+    processed_data = Queue() #Unacked
+    last_merge = time()
     with open(output_file, "wb") as output:
-        thread = threading.Thread(target=randomized_sync_log, args=(output, output_file, processed_data))
-        thread.deamon = True
-        thread.start()
-
         while 1:
             process_state = process.poll() 
             if (process_state is not None):
                 break
             
-            new_line = get_process_output(process)
+            new_line = get_process_output(process, poller)
             if (new_line == ""):
-                break
+                print("TO")
+                last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
+                continue
             
             print(f"NEW LINE: {new_line}")
             new_line = new_line.decode('utf-8')
+            print("GOT LINE", new_line)
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             
             vm_id, stream_id = dict_data["key"].split(':')
             key_vals = dict_data["value"]
-            vm_id = int(vm_id)
+            # vm_id = int(vm_id)
             
-            processed_data[vm_id].append(stream_id)
-            print("VALS", key_vals)
+            processed_data.put((f"{stage_id- 1}{vm_id}R",stream_id))
             for key_val in key_vals:    
                 output.write(f"{key_val[0]}:{key_val[1]}\n".encode())
+            last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
             
-    # print("APPENDING to", output_file)
     # randomized_sync_log(output, output_file, 0, processed_data)
 
 def handle_output(job_id):
-    job = current_jobs.get(job_id)
+    job = current_jobs.get(job_id, copy=False)
+
     if ("VM" in job):
+        job["SOCKETS"] = [0] * len(job["VM"])
         pipe_vms(job)
     elif ("OUTPUT" in job):
         pipe_file(job)    
-
-
-
 
 def prepare_execution(leader_socket):
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
@@ -205,39 +260,43 @@ def prepare_execution(leader_socket):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE
     )
+    poller = select.poll()
+    poller.register(process.stdout, select.POLLIN)
+    job_metadata["POLLER"] = poller
+    
+
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
     current_jobs.add(job_id, job_metadata)
-
+    # print(job_metadata)
     # Handle Output
     writer = threading.Thread(target=handle_output, args=(job_id,))
     writer.daemon = True
     writer.start()
     leader_socket.sendall('D'.encode())
-    print(job_metadata)
-
 
 def pipe_input(process, line):
     sleep(0.01)
     process.stdin.write(line)
     process.stdin.flush()
 
-def run_job(client: socket.socket):
-    job_id = receive_int(client) # MODE + JOB_ID
+def run_job(job_id, client_id, client: socket.socket):
+    # job_id = receive_int(client) # MODE + JOB_ID
     job = current_jobs.get(job_id) 
 
     process = job["PROCESS"] # subprocess Popen()
-    client_id = id_from_ip(socket.gethostbyaddr(client.getpeername()[0])[0]) # If we need it
-
+    file = open("file.txt", "wb")
     while (1):
         data_length = client.recv(4)
         print(f"DATA LENGTH: {data_length}")
         if (data_length == b''):
-            print("BREAK")
+            print("FINISHED")
             break
         data_length = from_bytes(data_length)
         print(f"DATA LENGTH 2: {data_length}")
         data = client.recv(data_length).decode('utf-8')
+        print(data)
+        sleep(0.000001)
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
         
@@ -245,57 +304,102 @@ def run_job(client: socket.socket):
 
         if (processed_streams.get((job_id, client_id, line_number))):
             # If already processed
+            print("SKIPPING", line_number)
+            send_int(client, line_number)
             continue
         
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
-        p_input = encode_key_val(new_key, stream) + "\n"
+        p_input = encode_key_val(new_key, stream) + '\n'
+        file.write(p_input.encode())
         pipe_input(process, p_input.encode())
 
     # process.stdin.close()    
+
+def send_data(sockets, idx, data):
+    while (1):
+        socket = sockets[idx] #open_sockets.get(socket_key, copy=False)
+        try:
+            send_int(socket, len(data))
+            socket.sendall(data.encode())
+            return
+        except (ConnectionResetError):
+            sleep(5)
 
 def partition_file(leader_socket: socket.socket):
     # We should ignore unmerged data so only bring next stage vm id
     leader_socket.sendall('D'.encode())
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
+    
     filename = job_metadata["FILE"] # Read from
     num_tasks = int(job_metadata["NUM_TASKS"]) # How many nodes
     key = int(job_metadata["KEY"]) # If Hash % num_tasks send to vm_id
     vm_id = int(job_metadata["VM"]) # vm to send data to
-    job_id = int(job_metadata["JOB_ID"]) # job_id
-
-    # TODO: Create thread to listen for acks and update queue
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as next_stage:
-        next_stage.settimeout(RECEIVE_TIMEOUT)
-        next_stage.connect((HOSTS[vm_id - 1], RAINSTORM_PORT))
+    stage_id = int(job_metadata["JOB_ID"]) # job_id
         
-        next_stage.sendall(RUN.encode('utf-8')) # sends run request
+    queue = Queue(maxsize=10240)
+    queue_lock = threading.Lock()
+    next_stage = setup_connection(vm_id, stage_id + 1)
+    client_id = get_ip_id(next_stage)
+    # sock_id = sock_id = f"{stage_id + 1}{client_id}S"
+    # open_sockets.add(sock_id, next_stage)
+    job_metadata["SOCKETS"] = [None] * num_tasks
+    job_metadata["SOCKETS"][key] = next_stage
 
-        send_int(next_stage, job_id) # send job _id
+    thread = threading.Thread(target=listen_acks, args=(queue, job_metadata["SOCKETS"], key, queue_lock))
+    thread.daemon = True
+    thread.start()
 
-        queue = Queue(maxsize=1024)
+    # Suppose key can't have commas
+    file_path = get_server_file_path(filename)
 
-        # Suppose key can't have commas
-        file_path = get_server_file_path(filename)
+    with open(file_path, "r") as file:
+        linenumber = 1
+        while (1):
+            line = file.readline()
+            if (not line):
+                sleep(1000)
+                continue
+            stream_id = f"{filename}:{linenumber}"
+            hash_parition = generate_sha1(stream_id)
+            
+            if (hash_parition % num_tasks == key):
+                stream = encode_key_val(stream_id, line) # <filename:linenumber, line>                    
+                key_val = encode_key_val(linenumber, stream) # <id, stream> for acks
+                queue.put((linenumber, stream), block=True)
+                send_data(job_metadata["SOCKETS"], key, key_val)
+            linenumber += 1
 
-        with open(file_path, "r") as file:
-            linenumber = 1
-            while (1):
-                line = file.readline()
-                if (not line):
-                    break
-                stream_id = f"{filename}:{linenumber}"
-                hash_parition = generate_sha1(stream_id)
-                
-                if (hash_parition % num_tasks == key):
-                    stream = encode_key_val(stream_id, line) # <filename:linenumber, line>                    
-                    key_val = encode_key_val(linenumber, stream) # <id, stream> for acks
-                    queue.put((linenumber, stream), block=True)
-                    send_int(next_stage, len(key_val))
-                    next_stage.sendall(key_val.encode())
-                linenumber += 1
-        print("DONE")
+def setup_connection(vm_id, job_id):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(RECEIVE_TIMEOUT)
+    sock.connect((HOSTS[vm_id - 1], RAINSTORM_PORT))
+    sock.sendall(RUN.encode('utf-8')) # sends run request
+    send_int(sock, job_id) # send job _id
+    return sock
+
+def update_connection(leader):
+    new_data = leader.recv(1024 * 1024)
+    new_data.decode('utf-8')
+    config = decode_key_val(new_data)
+
+    # MESSAGE FORM: update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
+
+    failed = config["VM"]
+    stage = config["STAGE"] # (job_id, "stage1")
+    new_vm = config["NEW"] # [vm_id_1, vm_id2, ...]
+
+    if (current_jobs.contains(stage - 1)): # Look for sender and update their sockets
+        job = current_jobs.get(stage - 1, copy=False)
+        if ("VM" in job and failed in job["VM"]):
+            idx = job["VM"].index(failed)
+            new_sock = setup_connection(new_vm, stage)
+            job["VM"][idx] = new_vm
+            job["SOCKETS"][idx].replace(new_sock)
+    # open_
+def get_ip_id(sock):
+    return id_from_ip(socket.gethostbyaddr(sock.getpeername()[0])[0])
+
 
 def handle_client(client: socket.socket, ip_address):
     mode = client.recv(1).decode('utf-8')
@@ -304,7 +408,16 @@ def handle_client(client: socket.socket, ip_address):
     elif (mode == EXECUTE):
         prepare_execution(client)
     elif (mode == RUN):
-        run_job(client)
+        stage_id = receive_int(client)
+        thread_sock = ThreadSock(client)
+        sock_id = get_ip_id(client)
+        current_jobs.get(stage_id, copy=False)
+        open_sockets.add(f"{stage_id - 1}{sock_id}R", thread_sock) # IP address to client socket
+        run_job(stage_id, sock_id, thread_sock)
+    elif (mode == UPDATE):
+        return
+        # Updates connection on failures
+        # update_connection(client)
 
 
 
@@ -320,7 +433,7 @@ def start_server(my_id: int):
     
     # Lets server reuse address so that it can relaunch quickly
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.settimeout(RECEIVE_TIMEOUT)
+    # server.settimeout(RECEIVE_TIMEOUT)
     server.bind((HOSTS[my_id - 1], RAINSTORM_PORT))
 
     server.listen(MAX_CLIENTS)
@@ -333,17 +446,15 @@ def start_server(my_id: int):
     global current_jobs
     current_jobs = Dict(dict)
     sleep(7)
+
+    global open_sockets
+    open_sockets = Dict(socket.socket)
     
     global member_list
     member_list = set(get_machines())
     while True:
-        try:
-            client_socket, ip_address = server.accept()
-        except (ConnectionRefusedError, socket.timeout):
-            # TODO: See if someone next or prev
-            continue
+        client_socket, ip_address = server.accept()
 
-        # Creates a new thread for each client
         client_handler = threading.Thread(target=handle_client, args=(client_socket, ip_address,))
         
         # sets daemon to true so that there is no need of joining threads once thread finishes

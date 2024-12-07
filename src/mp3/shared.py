@@ -136,7 +136,7 @@ def create(file_name, server_file_name):
         exit(1)
     
     receiver_id = get_receiver_id_from_file(my_id, server_file_name) # This is replica I'm going to send the actual file content to
-    print(f"append to: {receiver_id}")
+    # print(f"append to: {receiver_id}")
     res = request_append_file(receiver_id, server_file_name, file_name, "N")
     receiver_id = get_receiver_id_from_file(0, server_file_name)
     request_merge_file(receiver_id, server_file_name)
@@ -241,7 +241,7 @@ def send_file(receiver_socket, file_name, file_version=None):
                 if not chunk:
                     break 
                 receiver_socket.sendall(chunk)
-            print(f"File {file_name} sent successfully.")
+            # print(f"File {file_name} sent successfully.")
     except FileNotFoundError as e:
         print(f"File {file_name} not found.")
     except (ConnectionRefusedError, socket.timeout) as e:

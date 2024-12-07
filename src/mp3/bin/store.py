@@ -3,7 +3,7 @@ import os
 import socket
 from src.mp3.shared import generate_sha1, id_from_ip, get_server_file_path
 
-print(f"VM ID {id_from_ip(socket.gethostname())}")
+# print(f"VM ID {id_from_ip(socket.gethostname())}")
 root_dir = "src/mp3/fs"
 metadata_dir = "metadata"
 # List all files and directories and reconstruct the full path
@@ -16,4 +16,4 @@ for dirpath, dirnames, filenames in os.walk(root_dir):
         full_path = os.path.join(dirpath, filename)
         # Convert backslashes (Windows) to forward slashes
         full_path = full_path.replace(os.path.sep, "/")
-        print(full_path)
+        # print(full_path)
