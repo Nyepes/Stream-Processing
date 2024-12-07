@@ -1,3 +1,4 @@
 READ = 'R'
 EXECUTE = "E"
-RUN = "U"
+RUN = "r"
+UPDATE = "U"

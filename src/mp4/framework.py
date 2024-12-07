@@ -20,7 +20,7 @@ def rain_storm_framework(machine_id, user_defined_job):
             print(str_out)
             sys.stdout.flush()
     except Exception as e:
+        print(e, f"{line}")
         print("ERROR")
-        print(e)
 
 

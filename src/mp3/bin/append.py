@@ -18,8 +18,8 @@ if __name__ == "__main__":
     res = append(my_id, local_file, file_name)
     
     if (res < 0):
-         print("Append Failed")
+        #  print("Append Failed")
     else:
-        print("Append Completed")
+        # print("Append Completed")
 
 
