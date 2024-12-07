@@ -57,8 +57,6 @@ class Dict:
             A copy of the value associated with the key.
         """
         with self.lock:
-            if (key not in self.dict):
-                print("NOT FOUND", key)
             val = self.dict[key]
             if isinstance(val, bool) or copy == False:
                 return val
