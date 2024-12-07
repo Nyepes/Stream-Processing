@@ -7,7 +7,7 @@ from time import sleep
 
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, MAX_CLIENTS, LEADER_PORT, RAINSTORM_PORT
 from src.shared.DataStructures.Dict import Dict
-from src.mp4.constants import READ, EXECUTE, RUN
+from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
 from src.shared.shared import get_machines
 from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_replica_ids, generate_sha1
 
@@ -31,7 +31,7 @@ def request_read(job_id, file, readers, workers, num_tasks):
             "FILE": file,
             "NUM_TASKS": num_tasks,
             "KEY": i,
-            "VM": workers[i],
+            "VM": [workers[i]],
             "JOB_ID": job_id
         }
         send_request(READ, request, readers[i])
@@ -72,14 +72,14 @@ def get_workers(num_tasks):
     return ans
 
 def update_membership():
-    return
-    # global member_list
-    # member_set = set(member_list)
-    # new_memberlist = set(get_machines())
-    # new_members = new_memberlist - member_set
-    # for member in new_members:
-    #     member_jobs.add(member, [])
-    # member_list = new_memberlist
+    # return
+    global member_list
+    member_set = set(member_list)
+    new_memberlist = set(get_machines())
+    new_members = new_memberlist - member_set
+    for member in new_members:
+        member_jobs.add(member, [])
+    member_list = new_memberlist
 
 def start_job(job_data):
     update_membership()
@@ -132,16 +132,22 @@ def start_job(job_data):
     # print('C')
 
 
-def handle_failed(failed):
-    new_vm = get_workers(1) # Find replacement id
-
-    affected_jobs = member_jobs.get(failed)
-    members = get_machines() + [machine_id]
-    for stage in affected_jobs:
-
-        update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
-        for member in members:
-            send_request(UPDATE, member, update_message)
+def handle_failed(failed_nodes):
+    affected = {}
+    for node in failed_nodes:
+        affected[node] = member_jobs.get(node)
+        member_jobs.delete(node)
+    for failed in failed_nodes:
+        new_vm = get_workers(1)[0] # Find replacement id
+        affected_jobs = affected[failed]
+        print("AFFECTED_JOBS", affected_jobs)
+        members = get_machines() + [machine_id]
+        for stage in affected_jobs:
+            # Create replacement
+            member_jobs.increment_list(new_vm, stage)
+            update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
+            for member in members:
+                send_request(UPDATE, update_message, member)
     
 
 def poll_failures():
@@ -149,11 +155,11 @@ def poll_failures():
     global member_list
     while (1):
         sleep(1)
-        # new_machines = set(get_machines())
-        # failed = set(member_list) - new_machines
-        # if (len(failed) > 0):
-        #     handle_failed(failed)
-        #     member_list = new_machines
+        new_machines = set(get_machines())
+        failed = set(member_list) - new_machines
+        if (len(failed) > 0):
+            handle_failed(failed)
+            member_list = new_machines
         
  
 def handle_client(client_sock, ip):
