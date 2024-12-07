@@ -249,6 +249,32 @@ def handle_output(job_id):
     elif ("OUTPUT" in job):
         pipe_file(job)    
 
+def recover_log(job):
+
+    job_id = job["JOB_ID"]
+    failed_node_id = job["PREV"]
+
+    file_name = f"{job_id}-{failed_node_id}.log"
+    server_id = get_receiver_id_from_file(machine_id, file_name)
+    file_version = get_client_file_metadata(file_name)["version"]
+
+    self_own = get_hydfs_log_name(job)
+    local_cache_path = get_client_file_path(file_name)
+
+    # creates or appends it to hdfs
+
+    try:
+        create(local_cache_path, self_own)
+    except:
+        append(machine_id, local_cache_path, file_name)
+
+    # read line by line to modify bool dict
+    with open(local_cache_path, "r") as file:
+        for line in file:
+            key, val = decode_key_val(line)
+            _, line_num = key.split(":")
+            processed_streams.add((job_id, line_num), True)
+
 def prepare_execution(leader_socket):
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
     operation_exe = job_metadata["PATH"]
