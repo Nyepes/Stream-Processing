@@ -75,7 +75,7 @@ def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
         log_name = local_log.name
         
         append(machine_id, log_name, hydfs_log)
-        merge(hydfs_log)
+        # merge(hydfs_log)
         while (not processed.empty()):
             val = processed.get()
             sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
@@ -182,9 +182,7 @@ def pipe_vms(job):
     
         local_processed_log.write(new_line)
         new_line = new_line.decode('utf-8') # Stdout
-
-        # if (stage_id == 2):
-        #     print("PROCESSED", new_line)
+        print("PROCESSED", new_line)
         
         dict_data = decode_key_val(new_line) # Get dict
         vm_id, stream_id = dict_data["key"].split(':')
@@ -209,16 +207,12 @@ def pipe_vms(job):
     local_processed_log.close()
 
 def pipe_file(job):
-
-    # print("PIPE FILES")
     process = job["PROCESS"]
     poller = job["POLLER"]
     output_file = job["OUTPUT"]
     stage_id = job["JOB_ID"] # job_id
-    # print("FILE STAGE", stage_id)
     processed_data = Queue() #Unacked
     last_merge = time()
-    # local_processed_log = open(get_hydfs_log_name(job), "wb") # Log file
     with open(output_file, "wb") as output:
         while 1:
             process_state = process.poll() 
@@ -232,7 +226,7 @@ def pipe_file(job):
                 continue
             
             new_line = new_line.decode('utf-8')
-            # print("GOT LINE", new_line)
+            print("GOT LINE", new_line)
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             
             vm_id, stream_id = dict_data["key"].split(':')
@@ -289,7 +283,6 @@ def run_job(job_id, client_id, client: socket.socket):
     job = current_jobs.get(job_id) 
 
     process = job["PROCESS"] # subprocess Popen()
-    print("RUNNING job", job_id)
     file = open("file.txt", "wb")
     while (1):
         data_length = client.recv(4)
@@ -298,6 +291,7 @@ def run_job(job_id, client_id, client: socket.socket):
             break
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
+        print(data)
         sleep(0.000001)
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
@@ -417,6 +411,7 @@ def handle_client(client: socket.socket, ip_address):
         open_sockets.add(f"{stage_id - 1}{sock_id}R", thread_sock) # IP address to client socket
         run_job(stage_id, sock_id, thread_sock)
     elif (mode == UPDATE):
+        return
         # Updates connection on failures
         # update_connection(client)
 

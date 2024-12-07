@@ -149,11 +149,11 @@ def poll_failures():
     global member_list
     while (1):
         sleep(1)
-        new_machines = set(get_machines())
-        failed = set(member_list) - new_machines
-        if (len(failed) > 0):
-            handle_failed(failed)
-            member_list = new_machines
+        # new_machines = set(get_machines())
+        # failed = set(member_list) - new_machines
+        # if (len(failed) > 0):
+        #     handle_failed(failed)
+        #     member_list = new_machines
         
  
 def handle_client(client_sock, ip):
