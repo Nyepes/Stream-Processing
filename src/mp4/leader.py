@@ -72,13 +72,14 @@ def get_workers(num_tasks):
     return ans
 
 def update_membership():
-    global member_list
-    member_set = set(member_list)
-    new_memberlist = set(get_machines())
-    new_members = new_memberlist - member_set
-    for member in new_members:
-        member_jobs.add(member, [])
-    member_list = new_memberlist
+    return
+    # global member_list
+    # member_set = set(member_list)
+    # new_memberlist = set(get_machines())
+    # new_members = new_memberlist - member_set
+    # for member in new_members:
+    #     member_jobs.add(member, [])
+    # member_list = new_memberlist
 
 def start_job(job_data):
     update_membership()

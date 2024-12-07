@@ -418,7 +418,7 @@ def handle_client(client: socket.socket, ip_address):
         run_job(stage_id, sock_id, thread_sock)
     elif (mode == UPDATE):
         # Updates connection on failures
-        update_connection(client)
+        # update_connection(client)
 
 
 
