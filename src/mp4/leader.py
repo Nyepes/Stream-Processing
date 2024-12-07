@@ -14,7 +14,7 @@ from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_r
 machine_id = int(sys.argv[1])
 cur_jobs = None
 member_jobs = None
-max_job_id = 0
+max_task_id = 0
 member_list = []
 
 def send_request(type, request_data, to):
@@ -82,10 +82,12 @@ def update_membership():
 
 def start_job(job_data):
     update_membership()
-    global max_job_id
+    global max_task_id
 
-    job_id = max_job_id
-    max_job_id += 1 # TODO: Works if lucky!!!
+    cur_max = max_task_id
+    task_id = max_task_id
+    # job_id = max_job_id
+    # max_job_id += 1 # TODO: Works if lucky!!!
     op_1_path = job_data["OP_1_PATH"]
     op_2_path = job_data["OP_2_PATH"]
     hydfs_dir = job_data["INPUT_FILE"]
@@ -96,7 +98,7 @@ def start_job(job_data):
     readers = get_readers(num_tasks, hydfs_dir)
 
     for reader in readers:
-        member_jobs.increment_list(reader, job_id)
+        member_jobs.increment_list(reader, task_id)
 
     workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
 
@@ -111,52 +113,38 @@ def start_job(job_data):
     job_data["STAGE3"] = stage_3_workers
 
 
-    cur_jobs.add(job_id, job_data)
+    cur_jobs.add(task_id, job_data)
 
-    for worker in workers:
-        member_jobs.increment_list(worker, job_id)
+    for worker in stage_2_workers:
+        member_jobs.increment_list(worker, task_id + 1)
+    
+    for worker in stage_2_workers:
+        member_jobs.increment_list(worker, task_id + 2)
+    
+    max_task_id = task_id + 3
+    
+    request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path)
+    # print('A')
+    request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
+    # print('B')
+    request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
+    # print('C')
 
-    request_final_stage(job_id, stage_3_workers, output_dir, op_2_path)
-    request_intermediate_stage(job_id, stage_2_workers, stage_3_workers, op_1_path)
-    request_read(job_id, hydfs_dir, readers, stage_2_workers, num_tasks)
-
-
-def send_update(to, config):
-    return
 
 def handle_failed(failed):
-
     new_vm = get_workers(1) # Find replacement id
 
     affected_jobs = member_jobs.get(failed)
-    print(affected_jobs)
-    for job in affected_jobs:
-        job_config = cur_jobs.get(job)
-        all_nodes = job_config["READERS"] + job_config["STAGE2"] + job_config["STAGE3"]
-        num_tasks = job_config["NUM_TASKS"]
-        indices = [index for index, element in enumerate(my_list) if element == value]
-        config = [""]
-        for idx in indices:
-            if (idx < num_tasks): # Reader
-                pass
-            if (num_tasks <= idx < num_tasks):
-                # Update one reader
-                config = {"JOB_ID": job_id, KEY: "stage2", "VMS":[new_vm], "IDX": 0}
-                send_update(job_config["READERS"][idx % num_tasks])
-                new_vms = cur_jobs["STAGE2"]
-                new_vms[idx % num_tasks] = new_vm
-                config = {"JOB_ID": job_id, KEY: "stage2", "VMS": new_vms, "IDX": idx % num_tasks}
-                for stage_3 in job_config["STAGE3"]:
-                    send_update(stage_3, config)
+    members = get_machines() + [machine_id]
+    for stage in affected_jobs:
 
-
-            if (num_tasks <= idx < num_tasks):
-                pass
-
-
-    print(failed)
+        update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
+        for member in members:
+            send_request(UPDATE, member, update_message)
+    
 
 def poll_failures():
+    print("MEMBERS", member_jobs.items())
     global member_list
     while (1):
         sleep(1)

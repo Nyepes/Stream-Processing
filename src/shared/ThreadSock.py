@@ -24,4 +24,9 @@ class ThreadSock():
                 data += packet
             # print("DATA RETRUNED" + data.decode())
             return data
+    def replace(self, new_sock):
+        with self.send_lock:
+            with self.recv_lock:
+                self.socket.close()
+                self.socket = new_sock
     
