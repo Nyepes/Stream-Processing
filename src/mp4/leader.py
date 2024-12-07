@@ -10,8 +10,10 @@ from src.shared.DataStructures.Dict import Dict
 from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
 from src.shared.shared import get_machines
 from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_replica_ids, generate_sha1
+from src.mp4.worker import get_hydfs_log_name
 
 machine_id = int(sys.argv[1])
+job_info = None # what we send in the request
 cur_jobs = None
 member_jobs = None
 max_task_id = 0
@@ -43,6 +45,7 @@ def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
             "VM": next_stage,
             "JOB_ID": job_id,
         }
+        job_info.add((vm, job_id), request) # We need job id to avoid rewriting the job info if its different stages
         send_request(EXECUTE, request, vm)
 
 def request_final_stage(job_id, writers, output_file, binary_path):
@@ -52,6 +55,7 @@ def request_final_stage(job_id, writers, output_file, binary_path):
             "OUTPUT": output_file,
             "JOB_ID": job_id,
         }
+        job_info.add((vm, job_id), request)
         send_request(EXECUTE, request, vm)
 
 def get_readers(num_jobs, hydfs_dir):
@@ -87,14 +91,11 @@ def start_job(job_data):
 
     cur_max = max_task_id
     task_id = max_task_id
-    # job_id = max_job_id
-    # max_job_id += 1 # TODO: Works if lucky!!!
     op_1_path = job_data["OP_1_PATH"]
     op_2_path = job_data["OP_2_PATH"]
     hydfs_dir = job_data["INPUT_FILE"]
     output_dir = job_data["OUTPUT_FILE"]
     num_tasks = int(job_data["NUM_TASKS"])
-    # Maybe create file??? before starting
 
     readers = get_readers(num_tasks, hydfs_dir)
 
@@ -113,7 +114,6 @@ def start_job(job_data):
     job_data["STAGE2"] = stage_2_workers
     job_data["STAGE3"] = stage_3_workers
 
-
     cur_jobs.add(task_id, job_data)
 
     for worker in stage_2_workers:
@@ -125,12 +125,20 @@ def start_job(job_data):
     max_task_id = task_id + 3
     
     request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path)
-    # print('A')
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
-    # print('B')
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
-    # print('C')
 
+def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id):
+    """
+    Args:
+        stage (int): 0 - reader, 1 - intermediate, 2 - final
+        failed_node_id (int): The ID of the node that failed.
+        new_node_id (int): The ID of the new node that will replace the failed node.
+    """
+
+    request = job_info.get((failed_node_id, stage))
+    request["PREV"] = failed_node_id
+    send_request(EXECUTE, request, new_node_id)
 
 def handle_failed(failed_nodes):
     affected = {}
@@ -148,7 +156,17 @@ def handle_failed(failed_nodes):
             update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
             for member in members:
                 send_request(UPDATE, update_message, member)
-    
+        
+def handle_failed(failed):
+    new_vm = get_workers(1) # Find replacement id
+
+    affected_jobs = member_jobs.get(failed)
+    members = get_machines() + [machine_id]
+    for stage in affected_jobs:
+
+        update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
+        for member in members:
+            send_request(UPDATE, member, update_message)
 
 def poll_failures():
     print("MEMBERS", member_jobs.items())
@@ -172,9 +190,6 @@ def handle_client(client_sock, ip):
         start_job(job_data)
         poll_failures()
 
-
-
-
 def start_server(machine_id):
     """
     Creates a server that listens on a specified port and handles client connections.
@@ -192,15 +207,18 @@ def start_server(machine_id):
     server.bind((HOSTS[machine_id - 1], LEADER_PORT))
     server.listen(MAX_CLIENTS)
     
-    global cur_jobs, member_jobs
+    global cur_jobs, member_jobs, job_info
     cur_jobs = Dict(dict)
     member_jobs = Dict(list)
+    job_info = Dict(dict)
+    
     sleep(7)
     
     global member_list
     member_list = get_machines() + [machine_id]
     for member in member_list:
         member_jobs.add(member, [])
+    
     print(member_list)
     print(member_jobs)
 
