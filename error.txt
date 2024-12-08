@@ -1,0 +1,926 @@
+INPUT:  {"key": "2:1", "value": "{\"key\": \"8\", \"value\": \"Streetname - Sesquicentennial\"}"}
+
+INPUT:  {"key": "2:1", "value": "{\"key\": \"8\", \"value\": \"Streetname - Sesquicentennial\"}"}
+
+INPUT:  {"key": "2:2", "value": "{\"key\": \"18\", \"value\": \"35 mph Speed Limit\"}"}
+
+INPUT:  {"key": "2:2", "value": "{\"key\": \"18\", \"value\": \"35 mph Speed Limit\"}"}
+
+INPUT:  {"key": "2:3", "value": "{\"key\": \"19\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:3", "value": "{\"key\": \"19\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:4", "value": "{\"key\": \"20\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:4", "value": "{\"key\": \"20\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:5", "value": "{\"key\": \"21\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:5", "value": "{\"key\": \"21\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:6", "value": "{\"key\": \"22\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:6", "value": "{\"key\": \"22\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:7", "value": "{\"key\": \"23\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:7", "value": "{\"key\": \"23\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:8", "value": "{\"key\": \"24\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:8", "value": "{\"key\": \"24\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:9", "value": "{\"key\": \"25\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:9", "value": "{\"key\": \"25\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:10", "value": "{\"key\": \"26\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:10", "value": "{\"key\": \"26\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:11", "value": "{\"key\": \"27\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:11", "value": "{\"key\": \"27\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:12", "value": "{\"key\": \"29\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:12", "value": "{\"key\": \"29\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:13", "value": "{\"key\": \"30\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:13", "value": "{\"key\": \"30\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:14", "value": "{\"key\": \"31\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:14", "value": "{\"key\": \"31\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:15", "value": "{\"key\": \"32\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:15", "value": "{\"key\": \"32\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:16", "value": "{\"key\": \"33\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:16", "value": "{\"key\": \"33\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:17", "value": "{\"key\": \"94\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:17", "value": "{\"key\": \"94\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:18", "value": "{\"key\": \"95\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:18", "value": "{\"key\": \"95\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:19", "value": "{\"key\": \"96\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:19", "value": "{\"key\": \"96\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:20", "value": "{\"key\": \"97\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:20", "value": "{\"key\": \"97\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:21", "value": "{\"key\": \"98\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:21", "value": "{\"key\": \"98\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:22", "value": "{\"key\": \"99\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:22", "value": "{\"key\": \"99\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:23", "value": "{\"key\": \"102\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:23", "value": "{\"key\": \"102\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:24", "value": "{\"key\": \"103\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:24", "value": "{\"key\": \"103\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:25", "value": "{\"key\": \"104\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:25", "value": "{\"key\": \"104\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:26", "value": "{\"key\": \"105\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:26", "value": "{\"key\": \"105\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:27", "value": "{\"key\": \"106\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:27", "value": "{\"key\": \"106\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:28", "value": "{\"key\": \"107\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:28", "value": "{\"key\": \"107\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:29", "value": "{\"key\": \"108\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:29", "value": "{\"key\": \"108\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:30", "value": "{\"key\": \"109\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:30", "value": "{\"key\": \"109\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:31", "value": "{\"key\": \"110\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:31", "value": "{\"key\": \"110\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:32", "value": "{\"key\": \"112\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:32", "value": "{\"key\": \"112\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:33", "value": "{\"key\": \"113\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:33", "value": "{\"key\": \"113\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:34", "value": "{\"key\": \"114\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:34", "value": "{\"key\": \"114\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:35", "value": "{\"key\": \"115\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:35", "value": "{\"key\": \"115\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:36", "value": "{\"key\": \"116\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:36", "value": "{\"key\": \"116\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:37", "value": "{\"key\": \"117\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:37", "value": "{\"key\": \"117\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:38", "value": "{\"key\": \"118\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:38", "value": "{\"key\": \"118\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:39", "value": "{\"key\": \"119\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:39", "value": "{\"key\": \"119\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:40", "value": "{\"key\": \"150\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:40", "value": "{\"key\": \"150\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:41", "value": "{\"key\": \"151\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:41", "value": "{\"key\": \"151\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:42", "value": "{\"key\": \"170\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:42", "value": "{\"key\": \"170\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:43", "value": "{\"key\": \"242\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:43", "value": "{\"key\": \"242\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:44", "value": "{\"key\": \"244\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:44", "value": "{\"key\": \"244\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:45", "value": "{\"key\": \"246\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:45", "value": "{\"key\": \"246\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:46", "value": "{\"key\": \"247\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:46", "value": "{\"key\": \"247\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:47", "value": "{\"key\": \"248\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:47", "value": "{\"key\": \"248\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:48", "value": "{\"key\": \"249\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:48", "value": "{\"key\": \"249\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:49", "value": "{\"key\": \"250\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:49", "value": "{\"key\": \"250\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:50", "value": "{\"key\": \"251\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:50", "value": "{\"key\": \"251\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:51", "value": "{\"key\": \"260\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:51", "value": "{\"key\": \"260\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:52", "value": "{\"key\": \"268\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:52", "value": "{\"key\": \"268\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:53", "value": "{\"key\": \"292\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:53", "value": "{\"key\": \"292\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:54", "value": "{\"key\": \"293\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:54", "value": "{\"key\": \"293\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:55", "value": "{\"key\": \"294\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:55", "value": "{\"key\": \"294\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:56", "value": "{\"key\": \"295\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:56", "value": "{\"key\": \"295\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:57", "value": "{\"key\": \"296\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:57", "value": "{\"key\": \"296\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:58", "value": "{\"key\": \"297\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:58", "value": "{\"key\": \"297\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:59", "value": "{\"key\": \"298\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:59", "value": "{\"key\": \"298\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:60", "value": "{\"key\": \"299\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:60", "value": "{\"key\": \"299\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:61", "value": "{\"key\": \"300\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:61", "value": "{\"key\": \"300\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:62", "value": "{\"key\": \"301\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:62", "value": "{\"key\": \"301\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:63", "value": "{\"key\": \"302\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:63", "value": "{\"key\": \"302\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:64", "value": "{\"key\": \"303\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:64", "value": "{\"key\": \"303\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:65", "value": "{\"key\": \"304\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:65", "value": "{\"key\": \"304\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:66", "value": "{\"key\": \"305\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:66", "value": "{\"key\": \"305\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:67", "value": "{\"key\": \"306\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:67", "value": "{\"key\": \"306\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:68", "value": "{\"key\": \"307\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:68", "value": "{\"key\": \"307\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:69", "value": "{\"key\": \"308\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:69", "value": "{\"key\": \"308\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:70", "value": "{\"key\": \"309\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:70", "value": "{\"key\": \"309\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:71", "value": "{\"key\": \"310\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:71", "value": "{\"key\": \"310\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:72", "value": "{\"key\": \"311\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:72", "value": "{\"key\": \"311\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:73", "value": "{\"key\": \"312\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:73", "value": "{\"key\": \"312\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:74", "value": "{\"key\": \"313\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:74", "value": "{\"key\": \"313\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:75", "value": "{\"key\": \"314\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:75", "value": "{\"key\": \"314\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:76", "value": "{\"key\": \"328\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:76", "value": "{\"key\": \"328\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:77", "value": "{\"key\": \"368\", \"value\": \"Streetname - Private\"}"}
+
+INPUT:  {"key": "2:77", "value": "{\"key\": \"368\", \"value\": \"Streetname - Private\"}"}
+
+INPUT:  {"key": "2:78", "value": "{\"key\": \"373\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:78", "value": "{\"key\": \"373\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:79", "value": "{\"key\": \"383\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:79", "value": "{\"key\": \"383\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:80", "value": "{\"key\": \"384\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:80", "value": "{\"key\": \"384\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:81", "value": "{\"key\": \"385\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:81", "value": "{\"key\": \"385\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:82", "value": "{\"key\": \"407\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:82", "value": "{\"key\": \"407\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:83", "value": "{\"key\": \"408\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:83", "value": "{\"key\": \"408\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:84", "value": "{\"key\": \"409\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:84", "value": "{\"key\": \"409\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:85", "value": "{\"key\": \"410\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:85", "value": "{\"key\": \"410\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:86", "value": "{\"key\": \"412\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:86", "value": "{\"key\": \"412\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:87", "value": "{\"key\": \"414\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:87", "value": "{\"key\": \"414\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:88", "value": "{\"key\": \"415\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:88", "value": "{\"key\": \"415\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:89", "value": "{\"key\": \"416\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:89", "value": "{\"key\": \"416\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:90", "value": "{\"key\": \"417\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:90", "value": "{\"key\": \"417\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:91", "value": "{\"key\": \"418\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:91", "value": "{\"key\": \"418\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:92", "value": "{\"key\": \"419\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:92", "value": "{\"key\": \"419\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:93", "value": "{\"key\": \"422\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:93", "value": "{\"key\": \"422\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:94", "value": "{\"key\": \"423\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:94", "value": "{\"key\": \"423\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:95", "value": "{\"key\": \"424\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:95", "value": "{\"key\": \"424\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:96", "value": "{\"key\": \"425\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:96", "value": "{\"key\": \"425\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:97", "value": "{\"key\": \"427\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:97", "value": "{\"key\": \"427\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:98", "value": "{\"key\": \"428\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:98", "value": "{\"key\": \"428\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:99", "value": "{\"key\": \"429\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:99", "value": "{\"key\": \"429\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:100", "value": "{\"key\": \"431\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:100", "value": "{\"key\": \"431\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:101", "value": "{\"key\": \"432\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:101", "value": "{\"key\": \"432\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:102", "value": "{\"key\": \"433\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:102", "value": "{\"key\": \"433\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:103", "value": "{\"key\": \"532\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:103", "value": "{\"key\": \"532\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:104", "value": "{\"key\": \"533\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:104", "value": "{\"key\": \"533\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:105", "value": "{\"key\": \"534\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:105", "value": "{\"key\": \"534\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:106", "value": "{\"key\": \"535\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:106", "value": "{\"key\": \"535\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:107", "value": "{\"key\": \"536\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:107", "value": "{\"key\": \"536\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:108", "value": "{\"key\": \"537\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:108", "value": "{\"key\": \"537\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:109", "value": "{\"key\": \"538\", \"value\": \"No Parking to Corner with Left Arrow\"}"}
+
+INPUT:  {"key": "2:109", "value": "{\"key\": \"538\", \"value\": \"No Parking to Corner with Left Arrow\"}"}
+
+INPUT:  {"key": "2:110", "value": "{\"key\": \"539\", \"value\": \"No Parking Between Signs with Left Arrow\"}"}
+
+INPUT:  {"key": "2:110", "value": "{\"key\": \"539\", \"value\": \"No Parking Between Signs with Left Arrow\"}"}
+
+INPUT:  {"key": "2:111", "value": "{\"key\": \"540\", \"value\": \"2 hr Parking Time Limit\"}"}
+
+INPUT:  {"key": "2:111", "value": "{\"key\": \"540\", \"value\": \"2 hr Parking Time Limit\"}"}
+
+INPUT:  {"key": "2:112", "value": "{\"key\": \"541\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:112", "value": "{\"key\": \"541\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:113", "value": "{\"key\": \"542\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:113", "value": "{\"key\": \"542\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:114", "value": "{\"key\": \"543\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:114", "value": "{\"key\": \"543\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:115", "value": "{\"key\": \"544\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:115", "value": "{\"key\": \"544\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:116", "value": "{\"key\": \"545\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:116", "value": "{\"key\": \"545\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:117", "value": "{\"key\": \"546\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:117", "value": "{\"key\": \"546\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:118", "value": "{\"key\": \"547\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:118", "value": "{\"key\": \"547\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:119", "value": "{\"key\": \"548\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:119", "value": "{\"key\": \"548\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:120", "value": "{\"key\": \"549\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:120", "value": "{\"key\": \"549\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:121", "value": "{\"key\": \"550\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:121", "value": "{\"key\": \"550\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:122", "value": "{\"key\": \"551\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:122", "value": "{\"key\": \"551\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:123", "value": "{\"key\": \"552\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:123", "value": "{\"key\": \"552\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:124", "value": "{\"key\": \"553\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:124", "value": "{\"key\": \"553\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:125", "value": "{\"key\": \"554\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:125", "value": "{\"key\": \"554\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:126", "value": "{\"key\": \"555\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:126", "value": "{\"key\": \"555\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:127", "value": "{\"key\": \"556\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:127", "value": "{\"key\": \"556\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:128", "value": "{\"key\": \"557\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:128", "value": "{\"key\": \"557\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:129", "value": "{\"key\": \"558\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:129", "value": "{\"key\": \"558\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:130", "value": "{\"key\": \"559\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:130", "value": "{\"key\": \"559\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:131", "value": "{\"key\": \"560\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:131", "value": "{\"key\": \"560\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:132", "value": "{\"key\": \"561\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:132", "value": "{\"key\": \"561\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:133", "value": "{\"key\": \"562\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:133", "value": "{\"key\": \"562\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:134", "value": "{\"key\": \"563\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:134", "value": "{\"key\": \"563\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:135", "value": "{\"key\": \"564\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:135", "value": "{\"key\": \"564\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:136", "value": "{\"key\": \"565\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:136", "value": "{\"key\": \"565\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:137", "value": "{\"key\": \"567\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:137", "value": "{\"key\": \"567\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:138", "value": "{\"key\": \"568\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:138", "value": "{\"key\": \"568\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:139", "value": "{\"key\": \"569\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:139", "value": "{\"key\": \"569\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:140", "value": "{\"key\": \"572\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:140", "value": "{\"key\": \"572\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:141", "value": "{\"key\": \"573\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:141", "value": "{\"key\": \"573\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:142", "value": "{\"key\": \"575\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:142", "value": "{\"key\": \"575\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:143", "value": "{\"key\": \"589\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:143", "value": "{\"key\": \"589\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:144", "value": "{\"key\": \"590\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:144", "value": "{\"key\": \"590\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:145", "value": "{\"key\": \"591\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:145", "value": "{\"key\": \"591\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:146", "value": "{\"key\": \"592\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:146", "value": "{\"key\": \"592\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:147", "value": "{\"key\": \"593\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:147", "value": "{\"key\": \"593\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:148", "value": "{\"key\": \"594\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:148", "value": "{\"key\": \"594\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:149", "value": "{\"key\": \"595\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:149", "value": "{\"key\": \"595\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:150", "value": "{\"key\": \"596\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:150", "value": "{\"key\": \"596\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:151", "value": "{\"key\": \"597\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:151", "value": "{\"key\": \"597\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:152", "value": "{\"key\": \"598\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:152", "value": "{\"key\": \"598\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:153", "value": "{\"key\": \"599\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:153", "value": "{\"key\": \"599\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:154", "value": "{\"key\": \"600\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:154", "value": "{\"key\": \"600\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:155", "value": "{\"key\": \"601\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:155", "value": "{\"key\": \"601\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:156", "value": "{\"key\": \"602\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:156", "value": "{\"key\": \"602\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:157", "value": "{\"key\": \"603\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:157", "value": "{\"key\": \"603\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:158", "value": "{\"key\": \"608\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:158", "value": "{\"key\": \"608\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:159", "value": "{\"key\": \"609\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:159", "value": "{\"key\": \"609\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:160", "value": "{\"key\": \"616\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:160", "value": "{\"key\": \"616\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:161", "value": "{\"key\": \"618\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:161", "value": "{\"key\": \"618\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:162", "value": "{\"key\": \"619\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:162", "value": "{\"key\": \"619\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:163", "value": "{\"key\": \"674\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:163", "value": "{\"key\": \"674\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:164", "value": "{\"key\": \"677\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:164", "value": "{\"key\": \"677\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:165", "value": "{\"key\": \"678\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:165", "value": "{\"key\": \"678\", \"value\": \"Streetname\"}"}
+
+INPUT:  {"key": "2:166", "value": "{\"key\": \"679\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:166", "value": "{\"key\": \"679\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:167", "value": "{\"key\": \"695\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:167", "value": "{\"key\": \"695\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:168", "value": "{\"key\": \"698\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:168", "value": "{\"key\": \"698\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:169", "value": "{\"key\": \"699\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:169", "value": "{\"key\": \"699\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:170", "value": "{\"key\": \"700\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:170", "value": "{\"key\": \"700\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:171", "value": "{\"key\": \"701\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:171", "value": "{\"key\": \"701\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:172", "value": "{\"key\": \"702\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:172", "value": "{\"key\": \"702\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:173", "value": "{\"key\": \"703\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:173", "value": "{\"key\": \"703\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:174", "value": "{\"key\": \"704\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:174", "value": "{\"key\": \"704\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:175", "value": "{\"key\": \"705\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:175", "value": "{\"key\": \"705\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:176", "value": "{\"key\": \"706\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:176", "value": "{\"key\": \"706\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:177", "value": "{\"key\": \"707\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:177", "value": "{\"key\": \"707\", \"value\": \"Stop\"}"}
+
+INPUT:  {"key": "2:178", "value": "{\"key\": \"733\", \"value\": \"No Trespassing\"}"}
+
+INPUT:  {"key": "2:178", "value": "{\"key\": \"733\", \"value\": \"No Trespassing\"}"}
+
+INPUT:  {"key": "2:179", "value": "{\"key\": \"734\", \"value\": \"Do Not Enter\"}"}
+
+INPUT:  {"key": "2:179", "value": "{\"key\": \"734\", \"value\": \"Do Not Enter\"}"}
+
+INPUT:  {"key": "2:180", "value": "{\"key\": \"744\", \"value\": \"Do Not Enter\"}"}
+
+INPUT:  {"key": "2:180", "value": "{\"key\": \"744\", \"value\": \"Do Not Enter\"}"}
+
+INPUT:  {"key": "2:181", "value": "{\"key\": \"748\", \"value\": \"Double Headed Arrow\"}"}
+
+INPUT:  {"key": "2:181", "value": "{\"key\": \"748\", \"value\": \"Double Headed Arrow\"}"}
+
+INPUT:  {"key": "2:182", "value": "{\"key\": \"749\", \"value\": \"Double Headed Arrow\"}"}
+
+INPUT:  {"key": "2:182", "value": "{\"key\": \"749\", \"value\": \"Double Headed Arrow\"}"}
+
+INPUT:  {"key": "2:183", "value": "{\"key\": \"751\", \"value\": \"Left Lane Must Turn Left\"}"}
+
+INPUT:  {"key": "2:183", "value": "{\"key\": \"751\", \"value\": \"Left Lane Must Turn Left\"}"}
+
+INPUT:  {"key": "2:184", "value": "{\"key\": \"753\", \"value\": \"Lane Use -Right/Straight\"}"}
+
+INPUT:  {"key": "2:184", "value": "{\"key\": \"753\", \"value\": \"Lane Use -Right/Straight\"}"}
+
+INPUT:  {"key": "2:185", "value": "{\"key\": \"754\", \"value\": \"Left Lane Must Turn Left\"}"}
+
+INPUT:  {"key": "2:185", "value": "{\"key\": \"754\", \"value\": \"Left Lane Must Turn Left\"}"}
+
+INPUT:  {"key": "2:186", "value": "{\"key\": \"763\", \"value\": \"Right Lane Must Turn Right\"}"}
+
+INPUT:  {"key": "2:186", "value": "{\"key\": \"763\", \"value\": \"Right Lane Must Turn Right\"}"}
+
+INPUT:  {"key": "2:187", "value": "{\"key\": \"783\", \"value\": \"No Trespassing\"}"}
+
+INPUT:  {"key": "2:187", "value": "{\"key\": \"783\", \"value\": \"No Trespassing\"}"}
+
+INPUT:  {"key": "2:188", "value": "{\"key\": \"788\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:188", "value": "{\"key\": \"788\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:189", "value": "{\"key\": \"805\", \"value\": \"Stop Ahead\"}"}
+
+INPUT:  {"key": "2:189", "value": "{\"key\": \"805\", \"value\": \"Stop Ahead\"}"}
+
+INPUT:  {"key": "2:190", "value": "{\"key\": \"813\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:190", "value": "{\"key\": \"813\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:191", "value": "{\"key\": \"820\", \"value\": \"No Trucks\"}"}
+
+INPUT:  {"key": "2:191", "value": "{\"key\": \"820\", \"value\": \"No Trucks\"}"}
+
+INPUT:  {"key": "2:192", "value": "{\"key\": \"821\", \"value\": \"No Trucks\"}"}
+
+INPUT:  {"key": "2:192", "value": "{\"key\": \"821\", \"value\": \"No Trucks\"}"}
+
+INPUT:  {"key": "2:193", "value": "{\"key\": \"829\", \"value\": \"No Right Turn\"}"}
+
+INPUT:  {"key": "2:193", "value": "{\"key\": \"829\", \"value\": \"No Right Turn\"}"}
+
+INPUT:  {"key": "2:194", "value": "{\"key\": \"838\", \"value\": \"Yield\"}"}
+
+INPUT:  {"key": "2:194", "value": "{\"key\": \"838\", \"value\": \"Yield\"}"}
+
+INPUT:  {"key": "2:195", "value": "{\"key\": \"870\", \"value\": \"Merge Left\"}"}
+
+INPUT:  {"key": "2:195", "value": "{\"key\": \"870\", \"value\": \"Merge Left\"}"}
+
+INPUT:  {"key": "2:196", "value": "{\"key\": \"872\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:196", "value": "{\"key\": \"872\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:197", "value": "{\"key\": \"873\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:197", "value": "{\"key\": \"873\", \"value\": \"Wrong Way\"}"}
+
+INPUT:  {"key": "2:198", "value": "{\"key\": \"874\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:198", "value": "{\"key\": \"874\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:199", "value": "{\"key\": \"879\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:199", "value": "{\"key\": \"879\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:200", "value": "{\"key\": \"885\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:200", "value": "{\"key\": \"885\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:201", "value": "{\"key\": \"888\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:201", "value": "{\"key\": \"888\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:202", "value": "{\"key\": \"889\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:202", "value": "{\"key\": \"889\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:203", "value": "{\"key\": \"890\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:203", "value": "{\"key\": \"890\", \"value\": \"T Intersection\"}"}
+
+INPUT:  {"key": "2:204", "value": "{\"key\": \"900\", \"value\": \"Streetname - Honorary\"}"}
+
+INPUT:  {"key": "2:204", "value": "{\"key\": \"900\", \"value\": \"Streetname - Honorary\"}"}
+
+INPUT:  {"key": "2:205", "value": "{\"key\": \"917\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:205", "value": "{\"key\": \"917\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:206", "value": "{\"key\": \"919\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:206", "value": "{\"key\": \"919\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:207", "value": "{\"key\": \"923\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:207", "value": "{\"key\": \"923\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:208", "value": "{\"key\": \"924\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:208", "value": "{\"key\": \"924\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:209", "value": "{\"key\": \"927\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:209", "value": "{\"key\": \"927\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:210", "value": "{\"key\": \"931\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:210", "value": "{\"key\": \"931\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:211", "value": "{\"key\": \"940\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:211", "value": "{\"key\": \"940\", \"value\": \"Neighborhood Watch\"}"}
+
+INPUT:  {"key": "2:212", "value": "{\"key\": \"947\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:212", "value": "{\"key\": \"947\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:213", "value": "{\"key\": \"948\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:213", "value": "{\"key\": \"948\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:214", "value": "{\"key\": \"950\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:214", "value": "{\"key\": \"950\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:215", "value": "{\"key\": \"951\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:215", "value": "{\"key\": \"951\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:216", "value": "{\"key\": \"953\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:216", "value": "{\"key\": \"953\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:217", "value": "{\"key\": \"955\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:217", "value": "{\"key\": \"955\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:218", "value": "{\"key\": \"957\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:218", "value": "{\"key\": \"957\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:219", "value": "{\"key\": \"958\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:219", "value": "{\"key\": \"958\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:220", "value": "{\"key\": \"959\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:220", "value": "{\"key\": \"959\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:221", "value": "{\"key\": \"960\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:221", "value": "{\"key\": \"960\", \"value\": \"No Outlet\"}"}
+
+INPUT:  {"key": "2:222", "value": "{\"key\": \"961\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:222", "value": "{\"key\": \"961\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:223", "value": "{\"key\": \"971\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:223", "value": "{\"key\": \"971\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:224", "value": "{\"key\": \"977\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:224", "value": "{\"key\": \"977\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:225", "value": "{\"key\": \"994\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:225", "value": "{\"key\": \"994\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:226", "value": "{\"key\": \"1000\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:226", "value": "{\"key\": \"1000\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:227", "value": "{\"key\": \"1015\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:227", "value": "{\"key\": \"1015\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:228", "value": "{\"key\": \"1016\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:228", "value": "{\"key\": \"1016\", \"value\": \"No Parking\"}"}
+
+INPUT:  {"key": "2:229", "value": "{\"key\": \"1021\", \"value\": \"Streetname - Honorary\"}"}
+
+INPUT:  {"key": "2:229", "value": "{\"key\": \"1021\", \"value\": \"Streetname - Honorary\"}"}
+
+INPUT:  {"key": "2:230", "value": "{\"key\": \"1024\", \"value\": \"No Parking to Corner\"}"}
+
+INPUT:  {"key": "2:230", "value": "{\"key\": \"1024\", \"value\": \"No Parking to Corner\"}"}
+
+Traceback (most recent call last):
+  File "/home/nyepes2/g06/tests/mp4_demo2.py", line 12, in <module>
+    rain_storm_framework(machine_id, count_vals)
+  File "/home/nyepes2/g06/src/mp4/framework.py", line 12, in rain_storm_framework
+    for line in sys.stdin:  # Read from stdin line by line
+KeyboardInterrupt

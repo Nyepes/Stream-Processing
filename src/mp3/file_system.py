@@ -335,7 +335,7 @@ def merge_file(file_name):
         
         for chunk, status in memtable.get(file_name):  # head replica
             if not chunk or status == "F": continue
-            s.sendall(chunk[:-1])  # REVISE chunk[:-1]
+            s.sendall(chunk)  # DO NOT REVISE
         
         for chunk, status in buffer:  # other replicas
             if not chunk or status == "F": continue
@@ -347,7 +347,7 @@ def merge_file(file_name):
     with open(get_server_file_path(file_name), "a") as file:
         for chunk, status in memtable.get(file_name):
             if not chunk or status == "F": continue
-            file.write(chunk[:-1].decode('utf-8'))
+            file.write(chunk.decode('utf-8'))
 
         for chunk, status in buffer:
             if not chunk or status == "F": continue
