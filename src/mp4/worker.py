@@ -75,26 +75,27 @@ def get_process_output(process, poller, timeout_sec = 5):
         
     return line
 
-def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
+def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge, acks=True):
     cur_time = time()
-    if (processed.qsize() >= 30 or last_merge + 1 < cur_time):
+    if (processed.qsize() >= 30 or last_merge + 0.1 < cur_time):
         local_log.flush()
         log_name = local_log.name
         append(machine_id, log_name, hydfs_log)
         merge(hydfs_log)
         qsize = processed.qsize()
-        for i in range(qsize):
-            val = processed.get()
-            sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
-            try:
-                send_int(sender_sock, int(val[1]))
-            except (ConnectionResetError, BrokenPipeError):
-                processed.put(val[0], val[1]) # If error leave on queue and wait for retry or who to ack changes
-
+        if (acks):
+            for i in range(qsize):
+                val = processed.get()
+                sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
+                try:
+                    send_int(sender_sock, int(val[1]))
+                except (ConnectionResetError, BrokenPipeError):
+                    processed.put(val[0], val[1]) # If error leave on queue and wait for retry or who to ack changes
         local_log.truncate(0)
         local_log.seek(0, 0)
+        last_merge = time()
 
-    return time()
+    return last_merge
       
 def listen_acks(queue, socks, sock_idx, queue_lock):
     sock = socks[sock_idx]
@@ -242,12 +243,11 @@ def pipe_file(job):
                 break
             new_line = get_process_output(process, poller)
             if (new_line == b""):
-                sleep(1)
-                last_merge = randomized_sync_log(log_name, output_file, processed_data, last_merge)
-                append(machine_id, output_file, output_file)
-                merge(output_file)
+                randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+                last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
                 continue
-
+            
+            local_processed_log.write(new_line)
             new_line = new_line.decode('utf-8')
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             vm_id, stream_id = dict_data["key"].split(':')
@@ -262,13 +262,13 @@ def pipe_file(job):
                 output.write(f"{key_val[0]}:{key_val[1]}\n")
                 send_data([leader_sock], 0, f"{key_val[0]}:{key_val[1]}")
             
-            last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
-            append(machine_id, output_file, output_file)
-            merge(output_file)
+            randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+            last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
+
             
-        last_merge = randomized_sync_log(log_name, output_file, processed_data, last_merge)
-        append(machine_id, output_file, output_file)
-        merge(output_file)
+        # last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+        randomized_sync_log(output, output_file, processed_data, 0, acks=False)
+
 
 def handle_output(job_id):
     job = current_jobs.get(job_id, copy=False)

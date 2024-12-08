@@ -141,11 +141,18 @@ def start_job(job_data):
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
 
-def poll_updates(socket):
-    ThreadSock(socket)
+def poll_updates(sock):
+    ThreadSock(sock)
     while(1):
-        data_size = int.from_bytes(socket.recv(4), byteorder="little")
-        data = socket.recv(data_size)
+        try:
+            data_size = int.from_bytes(sock.recv(4), byteorder="little")
+        except (ConnectionRefusedError, socket.timeout):
+            continue
+        if (data_size == b''):
+            return
+        data = sock.recv(data_size)
+        if (data == b""):
+            return
         print(data.decode())
 
 
