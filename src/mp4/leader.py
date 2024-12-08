@@ -58,7 +58,7 @@ def request_final_stage(job_id, writers, output_file, binary_path, is_stateful):
             "JOB_ID": job_id,
             "START": start,
             "NUM_TASKS": len(writers),
-            "STATEFUL": is_stateful
+            "STATEFUL": is_stateful == "1"
         }
         job_info.add((vm, job_id), request)
         send_request(EXECUTE, request, vm)
