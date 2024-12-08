@@ -230,6 +230,11 @@ def pipe_file(job):
     processed_data = Queue() #Unacked
     last_merge = time()
     leader_sock = job["LEADER"]
+
+    log_name = get_hydfs_log_name(job)
+    local_processed_log = open(log_name, "wb") # Log file
+    create(log_name, log_name)
+
     with open(output_file, "w") as output:
         while 1:
             process_state = process.poll() 
@@ -238,7 +243,9 @@ def pipe_file(job):
             new_line = get_process_output(process, poller)
             if (new_line == b""):
                 sleep(1)
-                last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
+                last_merge = randomized_sync_log(log_name, output_file, processed_data, last_merge)
+                append(machine_id, output_file, output_file)
+                merge(output_file)
                 continue
 
             new_line = new_line.decode('utf-8')
@@ -256,8 +263,12 @@ def pipe_file(job):
                 send_data([leader_sock], 0, f"{key_val[0]}:{key_val[1]}")
             
             last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
+            append(machine_id, output_file, output_file)
+            merge(output_file)
             
-        randomized_sync_log(output, output_file, processed_data, 0)
+        last_merge = randomized_sync_log(log_name, output_file, processed_data, last_merge)
+        append(machine_id, output_file, output_file)
+        merge(output_file)
 
 def handle_output(job_id):
     job = current_jobs.get(job_id, copy=False)
