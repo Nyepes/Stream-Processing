@@ -224,55 +224,92 @@ def pipe_vms(job):
     local_processed_log.close()
 
 def pipe_file(job):
-    process = job["PROCESS"]
-    poller = job["POLLER"]
-    output_file = job["OUTPUT"]
+    # return
+    process = job["PROCESS"] # subprocess popen
     stage_id = job["JOB_ID"] # job_id
-    processed_data = Queue() #Unacked
-    last_merge = time()
-    leader_sock = job["LEADER"]
-
+    leader = job["LEADER"]
+    processed_data = Queue(maxsize = 10240)
     log_name = get_hydfs_log_name(job)
     local_processed_log = open(log_name, "wb") # Log file
     create(log_name, log_name)
+    last_merge = time()
+    line_number = job["START"]
+    while 1:
+        process_state = process.poll() 
+        if (process_state is not None):
+            break
+        new_line = get_process_output(process, None)
 
-    with open(output_file, "w") as output:
-        while 1:
-            process_state = process.poll() 
-            if (process_state is not None):
-                break
-            new_line = get_process_output(process, poller)
-            if (new_line == b""):
-                randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
-                last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
-                continue
+        if (new_line == b""): # Timeout
+            sleep(1)
+            last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+            continue
+    
+        local_processed_log.write(new_line)
+        new_line = new_line.decode('utf-8') # Stdout
+        
+        dict_data = decode_key_val(new_line) # Get dict
+        vm_id, stream_id = dict_data["key"].split(':')
+        key_vals = dict_data["value"]
+
+        processed_data.put((f"{stage_id - 1}{vm_id}R", stream_id)) # Already processed on sync return
+        if (key_vals is None):
+            continue
+        for key_val in key_vals:
+            json_key_val = encode_key_val(key_val[0], key_val[1])
+            json_string = encode_key_val(line_number, json_key_val)
+            send_data([leader], 0, json_string)
+            line_number += job["NUM_TASKS"]
+        last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+    local_processed_log.close()
+    # process = job["PROCESS"]
+    # poller = job["POLLER"]
+    # output_file = job["OUTPUT"]
+    # stage_id = job["JOB_ID"] # job_id
+    # processed_data = Queue() #Unacked
+    # last_merge = time()
+    # leader_sock = job["LEADER"]
+
+    # log_name = get_hydfs_log_name(job)
+    # local_processed_log = open(log_name, "wb") # Log file
+    # create(log_name, log_name)
+
+    # with open(output_file, "w") as output:
+    #     while 1:
+    #         process_state = process.poll() 
+    #         if (process_state is not None):
+    #             break
+    #         new_line = get_process_output(process, poller)
+    #         if (new_line == b""):
+    #             randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+    #             last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
+    #             continue
             
-            local_processed_log.write(new_line)
-            new_line = new_line.decode('utf-8')
-            dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
-            vm_id, stream_id = dict_data["key"].split(':')
+    #         local_processed_log.write(new_line)
+    #         new_line = new_line.decode('utf-8')
+    #         dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
+    #         vm_id, stream_id = dict_data["key"].split(':')
 
-            key_vals = dict_data["value"]
+    #         key_vals = dict_data["value"]
 
-            # vm_id = int(vm_id)
+    #         # vm_id = int(vm_id)
             
-            processed_data.put((f"{stage_id- 1}{vm_id}R",stream_id))
+    #         processed_data.put((f"{stage_id- 1}{vm_id}R",stream_id))
 
-            for key_val in key_vals:    
-                output.write(f"{key_val[0]}:{key_val[1]}\n")
-                send_data([leader_sock], 0, f"{key_val[0]}:{key_val[1]}")
+    #         for key_val in key_vals:    
+    #             output.write(f"{key_val[0]}:{key_val[1]}\n")
+    #             send_data([leader_sock], 0, f"{key_val[0]}:{key_val[1]}")
             
-            randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
-            last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
+    #         randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+    #         last_merge = randomized_sync_log(output, output_file, processed_data, last_merge, acks=False)
 
             
-        # last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
-        randomized_sync_log(output, output_file, processed_data, 0, acks=False)
+    #     # last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
+    #     randomized_sync_log(output, output_file, processed_data, 0, acks=False)
 
 
 def handle_output(job_id):
     job = current_jobs.get(job_id, copy=False)
-
     if ("VM" in job):
         job["SOCKETS"] = [0] * len(job["VM"])
         pipe_vms(job)
@@ -333,7 +370,6 @@ def prepare_execution(leader_socket):
         stdout=subprocess.PIPE,
         stderr=error_f
     )
-    job_metadata["POLLER"] = None
     make_non_blocking(process.stdout.fileno())
     
 
