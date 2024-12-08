@@ -13,7 +13,7 @@ from collections import defaultdict
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
 from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
-from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
+from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create, get_receiver_id_from_file, get_client_file_metadata, get_client_file_path, request_file
 from src.shared.DataStructures.Dict import Dict
 from src.shared.ThreadSock import ThreadSock
 
@@ -70,12 +70,14 @@ def get_process_output(process, poller, timeout_sec = 5):
 
 def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
     cur_time = time()
-    if (last_merge + 4 < cur_time):
+
+    if (random.random() < 1/50):
         local_log.flush()
         log_name = local_log.name
-        
         append(machine_id, log_name, hydfs_log)
-        # merge(hydfs_log)
+        sleep(0.0001) # Nerf our system
+        merge(hydfs_log)
+        sleep(0.0001) # Let Spark win some
         qsize = processed.qsize()
         for i in range(qsize):
             val = processed.get()
@@ -262,9 +264,9 @@ def recover_log(job):
     file_name = f"{job_id}-{failed_node_id}.log"
     server_id = get_receiver_id_from_file(machine_id, file_name)
     file_version = get_client_file_metadata(file_name)["version"]
-
-    self_own = get_hydfs_log_name(job)
     local_cache_path = get_client_file_path(file_name)
+    request_file(server_id, file_name, local_cache_path)
+    self_own = get_hydfs_log_name(job)
 
     # creates or appends it to hdfs
 
@@ -276,13 +278,23 @@ def recover_log(job):
     # read line by line to modify bool dict
     with open(local_cache_path, "r") as file:
         for line in file:
-            key, val = decode_key_val(line)
+            if line[0] == 'N':
+                line = line[1:]
+            if (line == ""):
+                continue
+
+            print(line)
+            key_vals = decode_key_val(line)
+            key = key_vals["key"]
             _, line_num = key.split(":")
             processed_streams.add((job_id, line_num), True)
+            # TODO: FOr stateful handle value
 
 def prepare_execution(leader_socket):
-
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
+    print(job_metadata)
+    if ("PREV" in job_metadata):
+        recover_log(job_metadata)
     operation_exe = job_metadata["PATH"]
     job_id = int(job_metadata["JOB_ID"]) # Job id
 

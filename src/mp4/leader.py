@@ -142,32 +142,22 @@ def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id)
 
 def handle_failed(failed_nodes):
     affected = {}
+    
     for node in failed_nodes:
         affected[node] = member_jobs.get(node)
         member_jobs.delete(node)
+    
     for failed in failed_nodes:
         new_vm = get_workers(1)[0] # Find replacement id
         affected_jobs = affected[failed]
         print("AFFECTED_JOBS", affected_jobs)
         members = get_machines() + [machine_id]
         for stage in affected_jobs:
-            # Create replacement
+            retransmit_failed_job_intermediate_stage(stage, failed, new_vm)
             member_jobs.increment_list(new_vm, stage)
             update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
             for member in members:
                 send_request(UPDATE, update_message, member)
-        
-def handle_failed(failed):
-    new_vm = get_workers(1) # Find replacement id
-
-    affected_jobs = member_jobs.get(failed)
-    members = get_machines() + [machine_id]
-    for stage in affected_jobs:
-
-        update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
-        for member in members:
-            send_request(UPDATE, member, update_message)
-
 def poll_failures():
     print("MEMBERS", member_jobs.items())
     global member_list
