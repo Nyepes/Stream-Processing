@@ -11,12 +11,11 @@ op2_exe = sys.argv[2]
 input_hydfs = sys.argv[3]
 output_hydfs = sys.argv[4]
 num_tasks = sys.argv[5]
+
 try:
-    is_stateful = sys.argv[6] # 0 - False, 1 - True
+    is_stateful = str(sys.argv[6]) # 0 - False, 1 - True
 except:
-    is_stateful = '0'
-
-
+    is_stateful = "0"
 
 def process_path(string):
       return shlex.split(string)
@@ -28,8 +27,6 @@ job_data["INPUT_FILE"] = input_hydfs
 job_data["OUTPUT_FILE"] = output_hydfs
 job_data["NUM_TASKS"] = num_tasks
 job_data["STATEFUL"] = is_stateful
-
-
 
 json_data = json.dumps(job_data)
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as leader:
