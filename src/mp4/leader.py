@@ -39,21 +39,26 @@ def request_read(job_id, file, readers, workers, num_tasks):
         send_request(READ, request, readers[i])
 
 def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
-    for vm in stage_vms:
+    for start, vm in enumerate(stage_vms):
         request = {
             "PATH": binary_path,
             "VM": next_stage,
             "JOB_ID": job_id,
+            "START": start,
+            "NUM_TASKS": len(next_stage)
         }
         job_info.add((vm, job_id), request) # We need job id to avoid rewriting the job info if its different stages
         send_request(EXECUTE, request, vm)
 
-def request_final_stage(job_id, writers, output_file, binary_path):
-    for vm in writers:
+def request_final_stage(job_id, writers, output_file, binary_path, is_stateful):
+    for start, vm in enumerate(writers):
         request = {
             "PATH": binary_path,
             "OUTPUT": output_file,
             "JOB_ID": job_id,
+            "START": start,
+            "NUM_TASKS": len(writers),
+            "STATEFUL": is_stateful == "1"
         }
         job_info.add((vm, job_id), request)
         send_request(EXECUTE, request, vm)
@@ -86,6 +91,7 @@ def update_membership():
     member_list = new_memberlist
 
 def start_job(job_data):
+    
     update_membership()
     global max_task_id
 
@@ -96,6 +102,7 @@ def start_job(job_data):
     hydfs_dir = job_data["INPUT_FILE"]
     output_dir = job_data["OUTPUT_FILE"]
     num_tasks = int(job_data["NUM_TASKS"])
+    is_stateful = job_data["STATEFUL"]
 
     readers = get_readers(num_tasks, hydfs_dir)
 
@@ -124,7 +131,7 @@ def start_job(job_data):
     
     max_task_id = task_id + 3
     
-    request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path)
+    request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path, is_stateful)
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
 
