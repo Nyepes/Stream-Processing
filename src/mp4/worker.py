@@ -78,7 +78,7 @@ def get_process_output(process, poller, timeout_sec = 5):
 def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
     cur_time = time()
 
-    if (random.random() < 1/50):
+    if (processed.qsize() > 30 or last_merge + 1 < cur_time):
         local_log.flush()
         log_name = local_log.name
         append(machine_id, log_name, hydfs_log)
@@ -157,7 +157,7 @@ def pipe_vms(job):
     stage_id = job["JOB_ID"] # job_id
 
     log_name = get_hydfs_log_name(job)
-    local_processed_log = open(log_name, "w") # Log file
+    local_processed_log = open(log_name, "wb") # Log file
     create(log_name, log_name)
     
     socks = []
@@ -193,15 +193,15 @@ def pipe_vms(job):
             break
         new_line = get_process_output(process, poller)
 
-        if (new_line == ""): # Timeout
+        if (new_line == b""): # Timeout
             print("TO")
-            sleep(0.1)
+            sleep(1)
             last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
             continue
     
         local_processed_log.write(new_line)
-        # new_line = new_line.decode('utf-8') # Stdout
-        print("PROCESSED", new_line, file = sys.stderr)
+        new_line = new_line.decode('utf-8') # Stdout
+        print("PROCESSED", new_line, file = sys.stdout)
         
         dict_data = decode_key_val(new_line) # Get dict
         vm_id, stream_id = dict_data["key"].split(':')
@@ -238,12 +238,14 @@ def pipe_file(job):
             if (process_state is not None):
                 break
             new_line = get_process_output(process, poller)
-            if (new_line == ""):
+
+            if (new_line == b""):
+                sleep(1)
                 last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
                 continue
 
-            # new_line = new_line.decode('utf-8')
-            print("NEW_LINE:", new_line, file=sys.stderr)
+            new_line = new_line.decode('utf-8')
+            print("NEW_LINE:", new_line, file=sys.stdout)
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             vm_id, stream_id = dict_data["key"].split(':')
 
@@ -258,20 +260,21 @@ def pipe_file(job):
             
             last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
             
-    # randomized_sync_log(output, output_file, 0, processed_data)
+        randomized_sync_log(output, output_file, processed_data, 0)
 
-def handle_output(job_id, state):
+def handle_output(job_id):
     job = current_jobs.get(job_id, copy=False)
 
     if ("VM" in job):
         job["SOCKETS"] = [0] * len(job["VM"])
-        pipe_vms(job, state)
+        pipe_vms(job)
     elif ("OUTPUT" in job):
         pipe_file(job)
 
 def recover_log(job):
 
     global state
+    print(job)
 
     job_id = job["JOB_ID"]
     failed_node_id = job["PREV"]
@@ -320,11 +323,12 @@ def prepare_execution(leader_socket):
 
     error_f = open("error.txt", "w")
     process = subprocess.Popen(
-        operation_exe.split(" ") + [str(machine_id)],
+        operation_exe + [str(machine_id)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=error_f,
     )
+    print("HER PREPARINGE")
     job_metadata["POLLER"] = None
     make_non_blocking(process.stdout.fileno())
     
@@ -332,7 +336,7 @@ def prepare_execution(leader_socket):
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
     current_jobs.add(job_id, job_metadata)
-    writer = threading.Thread(target=handle_output, args=(job_id,state,))
+    writer = threading.Thread(target=handle_output, args=(job_id,))
     writer.daemon = True
     writer.start()
     leader_socket.sendall('D'.encode())
@@ -344,11 +348,11 @@ def pipe_input(process, line):
 def run_job(job_id, client_id, client: socket.socket):
     # job_id = receive_int(client) # MODE + JOB_ID
     job = current_jobs.get(job_id) 
-
-    if (job["STATEFUL"]):
+    process = job["PROCESS"] # subprocess Popen()
+    print("process", process)
+    if (job.get("STATEFUL", False)):
         pipe_input(process, encode_key_val("STATE", json.dumps(state)).encode())
 
-    process = job["PROCESS"] # subprocess Popen()
     while (1):
         try:
             data_length = client.recv(4)
@@ -361,8 +365,7 @@ def run_job(job_id, client_id, client: socket.socket):
             break
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
-        print("RECEIVED", data, file=sys.stderr)
-        # sleep(0.000001)
+        print("RECEIVED", data, file=sys.stdout)
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
         
@@ -377,7 +380,6 @@ def run_job(job_id, client_id, client: socket.socket):
         processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
         new_key = f"{client_id}:{line_number}"
         p_input = encode_key_val(new_key, stream) + '\n'
-        print("PIPING IN:", p_input, file=sys.stderr)
         pipe_input(process, p_input.encode())
 
     # process.stdin.close()    
@@ -445,7 +447,7 @@ def setup_connection(vm_id, job_id):
     return sock
 
 def update_connection(leader):
-    print ("UPDATING CONNECTION", file=sys.stderr)
+    print ("UPDATING CONNECTION", file=sys.stdout)
     new_data = leader.recv(1024 * 1024)
     new_data.decode('utf-8')
     leader.sendall("D".encode())
