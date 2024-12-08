@@ -3998,9 +3998,12 @@ INPUT:  {"key": "6:1000", "value": "{\"key\": \"TrafficSigns_1000:1000\", \"valu
 
 INPUT:  {"key": "6:1000", "value": "{\"key\": \"TrafficSigns_1000:1000\", \"value\": \"-9825380.37277701,4881975.48003918,1027,No Parking,\\\"12\\\"\\\" X 18\\\"\\\"\\\", ,Punched Telespar, ,Parking, ,R7-1,Champaign,1059,,AERIAL,C,,830,\\n\"}"}
 
+<<<<<<< HEAD
 Traceback (most recent call last):
   File "/home/ilk2/g06/tests/app2_op1.py", line 16, in <module>
     rain_storm_framework(machine_id, filter_by_sign_type)
   File "/home/ilk2/g06/src/mp4/framework.py", line 12, in rain_storm_framework
     for line in sys.stdin:  # Read from stdin line by line
 KeyboardInterrupt
+=======
+>>>>>>> feb076a7d7dea23344147b50308dbf1e4b0385eb

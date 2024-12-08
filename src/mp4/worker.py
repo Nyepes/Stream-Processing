@@ -77,14 +77,11 @@ def get_process_output(process, poller, timeout_sec = 5):
 
 def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
     cur_time = time()
-
     if (processed.qsize() >= 30 or last_merge + 1 < cur_time):
         local_log.flush()
         log_name = local_log.name
         append(machine_id, log_name, hydfs_log)
-        sleep(0.0001) # Nerf our system
         merge(hydfs_log)
-        sleep(0.0001) # Let Spark win some
         qsize = processed.qsize()
         for i in range(qsize):
             val = processed.get()
@@ -197,7 +194,7 @@ def pipe_vms(job):
 
         if (new_line == b""): # Timeout
             print("TO")
-            sleep(0.1)
+            sleep(1)
             last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
             continue
     
@@ -241,7 +238,6 @@ def pipe_file(job):
                 break
             new_line = get_process_output(process, poller)
             if (new_line == b""):
-                print("HERE")
                 sleep(1)
                 last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
                 continue
@@ -276,6 +272,7 @@ def handle_output(job_id):
 def recover_log(job):
 
     global state
+    print(job)
 
     job_id = job["JOB_ID"]
     failed_node_id = job["PREV"]
@@ -324,13 +321,12 @@ def prepare_execution(leader_socket):
 
     error_f = open("error.txt", "w")
     process = subprocess.Popen(
-        operation_exe.split(" ") + [str(machine_id)],
+        operation_exe + [str(machine_id)],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=error_f
     )
-    # poller = select.poll()
-    # poller.register(process.stdout, select.POLLIN)
+    print("HER PREPARINGE")
     job_metadata["POLLER"] = None
     make_non_blocking(process.stdout.fileno())
     
@@ -338,15 +334,13 @@ def prepare_execution(leader_socket):
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
     current_jobs.add(job_id, job_metadata)
-    # print(job_metadata)
-    # Handle Output
+
     writer = threading.Thread(target=handle_output, args=(job_id,))
     writer.daemon = True
     writer.start()
     leader_socket.sendall('D'.encode())
 
 def pipe_input(process, line):
-    process.stdin.flush()
     process.stdin.write(line)
     process.stdin.flush()
 
@@ -372,7 +366,7 @@ def run_job(job_id, client_id, client: socket.socket):
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
         print("RECEIVED", data, file=sys.stdout)
-        # sleep(0.000001)
+
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
         
