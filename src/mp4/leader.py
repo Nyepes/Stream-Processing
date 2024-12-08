@@ -4,14 +4,17 @@ import threading
 import os
 import json
 from time import sleep
+import queue
+from queue import Queue
 
 from src.shared.ThreadSock import ThreadSock
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, MAX_CLIENTS, LEADER_PORT, RAINSTORM_PORT
 from src.shared.DataStructures.Dict import Dict
 from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
 from src.shared.shared import get_machines
-from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_replica_ids, generate_sha1
-from src.mp4.worker import get_hydfs_log_name
+from src.mp3.shared import get_receiver_id_from_file, request_create_file, get_replica_ids, generate_sha1, append, merge
+from src.mp4.worker import get_hydfs_log_name, from_bytes, decode_key_val
+
 
 machine_id = int(sys.argv[1])
 job_info = None # what we send in the request
@@ -28,7 +31,7 @@ def send_request(type, request_data, to):
     server_sock.sendall(json.dumps(request_data).encode('utf-8'))
     server_sock.recv(1)
     if (type == EXECUTE and "OUTPUT" in request_data):
-        thread = threading.Thread(target=poll_updates, args=(server_sock, ))
+        thread = threading.Thread(target=run_job, args=(request_data["JOB_ID"] - 2, server_sock, ))
         thread.daemon = True
         thread.start()
     else:
@@ -109,6 +112,7 @@ def start_job(job_data):
     output_dir = job_data["OUTPUT_FILE"]
     num_tasks = int(job_data["NUM_TASKS"])
     is_stateful = job_data["STATEFUL"]
+    job_data["QUEUE"] = Queue(maxsize=10240)
 
     readers = get_readers(num_tasks, hydfs_dir)
 
@@ -140,8 +144,71 @@ def start_job(job_data):
     request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path, is_stateful)
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
+    return task_id
 
-def poll_updates(sock):
+processed_streams = None
+
+def run_job(job_id, client: socket.socket):
+    queue =  cur_jobs.get(job_id)["QUEUE"]
+    while (1):
+        try:
+            data_length = client.recv(4)
+        except (ConnectionResetError):
+            print("CONNECTION RESET")
+            # Previous Node crashed Wait for next to connect
+            return
+        except(ConnectionRefusedError, socket.timeout):
+            sleep(1)
+            continue
+
+        if (data_length == b''):
+            break
+        data_length = from_bytes(data_length)
+        data = client.recv(data_length).decode('utf-8')
+
+        received_stream = decode_key_val(data)
+        line_number = received_stream["key"]
+        
+        stream = received_stream["value"]
+
+        if (processed_streams.get((job_id, line_number))): # CHANGE!!!!!
+            # No neeed to ack
+            continue
+        
+        processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
+        queue.put(stream)
+
+def write_output(job_id):
+    cur_job = cur_jobs.get(job_id)
+    q =  cur_jobs.get(job_id)["QUEUE"]
+    output_name = cur_jobs.get(job_id)["OUTPUT_FILE"]
+
+    processed_data = 0
+    with open(f"{job_id}", "w") as output:
+        while(1):
+            try:
+                val = q.get(timeout = 0.5)
+            except (queue.Empty):
+                output.flush()
+                append(0, output.name, output_name)
+                merge(output_name)
+                output.truncate(0)
+                output.seek(0,0)
+                sleep(1)
+                continue
+            dict_data = decode_key_val(val)
+            line = f"{dict_data['key']}:{dict_data['value']}"
+            print(line)
+            output.write(line + '\n')
+            processed_data += 1
+            if (processed_data >= 50):
+                output.flush()
+                append(0, output.name, output_name)
+                merge(output_name)
+                output.truncate(0)
+                output.seek(0,0)
+    # process.stdin.close()    
+def pipe_file(sock):
     ThreadSock(sock)
     while(1):
         try:
@@ -151,6 +218,7 @@ def poll_updates(sock):
         if (data_size == b''):
             return
         data = sock.recv(data_size)
+
         if (data == b""):
             return
         print(data.decode())
@@ -204,8 +272,12 @@ def handle_client(client_sock, ip):
         # Start Job
         data = client_sock.recv(1024 * 1024)
         job_data = json.loads(data.decode('utf-8'))
-        # print(f"Starting Job: {job_data}")
-        start_job(job_data)
+        task_id = start_job(job_data)
+        
+        thread = threading.Thread(target=write_output, args=(task_id, ))
+        thread.daemon = True
+        thread.start()
+
         poll_failures()
 
 def start_server(machine_id):
@@ -225,7 +297,8 @@ def start_server(machine_id):
     server.bind((HOSTS[machine_id - 1], LEADER_PORT))
     server.listen(MAX_CLIENTS)
     
-    global cur_jobs, member_jobs, job_info
+    global cur_jobs, member_jobs, job_info, processed_streams
+    processed_streams = Dict(bool)
     cur_jobs = Dict(dict)
     member_jobs = Dict(list)
     job_info = Dict(dict)
