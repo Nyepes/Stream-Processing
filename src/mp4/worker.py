@@ -193,14 +193,12 @@ def pipe_vms(job):
         new_line = get_process_output(process, poller)
 
         if (new_line == b""): # Timeout
-            print("TO")
             sleep(1)
             last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
             continue
     
         local_processed_log.write(new_line)
         new_line = new_line.decode('utf-8') # Stdout
-        print("PROCESSED", new_line, file = sys.stdout)
         
         dict_data = decode_key_val(new_line) # Get dict
         vm_id, stream_id = dict_data["key"].split(':')
@@ -231,6 +229,7 @@ def pipe_file(job):
     stage_id = job["JOB_ID"] # job_id
     processed_data = Queue() #Unacked
     last_merge = time()
+    leader_sock = job["LEADER"]
     with open(output_file, "w") as output:
         while 1:
             process_state = process.poll() 
@@ -243,7 +242,6 @@ def pipe_file(job):
                 continue
 
             new_line = new_line.decode('utf-8')
-            print("NEW_LINE:", new_line, file=sys.stdout)
             dict_data = decode_key_val(new_line) # input: (vm_id, input_id) Output List b"[(key,val), (key,val)...]"
             vm_id, stream_id = dict_data["key"].split(':')
 
@@ -255,6 +253,7 @@ def pipe_file(job):
 
             for key_val in key_vals:    
                 output.write(f"{key_val[0]}:{key_val[1]}\n")
+                send_data([leader_sock], 0, f"{key_val[0]}:{key_val[1]}")
             
             last_merge = randomized_sync_log(output, output_file, processed_data, last_merge)
             
@@ -272,8 +271,6 @@ def handle_output(job_id):
 def recover_log(job):
 
     global state
-    print(job)
-
     job_id = job["JOB_ID"]
     failed_node_id = job["PREV"]
 
@@ -303,7 +300,6 @@ def recover_log(job):
             if (line == ""):
                 continue
 
-            # print(line)
             key_vals = decode_key_val(line)
             key = key_vals["key"]
             _, line_num = key.split(":")
@@ -326,13 +322,14 @@ def prepare_execution(leader_socket):
         stdout=subprocess.PIPE,
         stderr=error_f
     )
-    print("HER PREPARINGE")
     job_metadata["POLLER"] = None
     make_non_blocking(process.stdout.fileno())
     
 
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
+    if ("OUTPUT" in job_metadata):
+        job_metadata["LEADER"] = ThreadSock(leader_socket)
     current_jobs.add(job_id, job_metadata)
 
     writer = threading.Thread(target=handle_output, args=(job_id,))
@@ -361,11 +358,9 @@ def run_job(job_id, client_id, client: socket.socket):
             return
 
         if (data_length == b''):
-            print("FINISHED")
             break
         data_length = from_bytes(data_length)
         data = client.recv(data_length).decode('utf-8')
-        print("RECEIVED", data, file=sys.stdout)
 
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
@@ -374,14 +369,12 @@ def run_job(job_id, client_id, client: socket.socket):
 
         if (processed_streams.get((job_id, line_number))): # CHANGE!!!!!
             # If already processed
-            # print("SKIPPING")
             send_int(client, line_number)
             continue
         
         processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
         new_key = f"{client_id}:{line_number}"
         p_input = encode_key_val(new_key, stream) + '\n'
-        print("PIPING IN:", p_input, file=sys.stdout)
         pipe_input(process, p_input.encode())
 
     # process.stdin.close()    
@@ -449,7 +442,6 @@ def setup_connection(vm_id, job_id):
     return sock
 
 def update_connection(leader):
-    print ("UPDATING CONNECTION", file=sys.stdout)
     new_data = leader.recv(1024 * 1024)
     new_data.decode('utf-8')
     leader.sendall("D".encode())
@@ -460,19 +452,16 @@ def update_connection(leader):
     failed = config["VM"]
     stage = config["STAGE"] # (job_id, "stage1")
     new_vm = config["NEW"] # [vm_id_1, vm_id2, ...]
-    print ("CONFIG", config)
 
 
     if (current_jobs.contains(stage - 1)): # Look for sender and update their sockets
         job = current_jobs.get(stage - 1, copy=False)
-        print("JOB", job)
         if ("VM" in job and failed in job["VM"]):
             idx = job["VM"].index(failed)
             new_sock = setup_connection(new_vm, stage)
             job["VM"][idx] = new_vm
             job["SOCKETS"][idx].replace(new_sock)
 
-        print("NEW JOB", job)
     # open_
 def get_ip_id(sock):
     return id_from_ip(socket.gethostbyaddr(sock.getpeername()[0])[0])

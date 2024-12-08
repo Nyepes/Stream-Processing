@@ -5,6 +5,7 @@ import os
 import json
 from time import sleep
 
+from src.shared.ThreadSock import ThreadSock
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, MAX_CLIENTS, LEADER_PORT, RAINSTORM_PORT
 from src.shared.DataStructures.Dict import Dict
 from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
@@ -20,13 +21,18 @@ max_task_id = 0
 member_list = []
 
 def send_request(type, request_data, to):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_sock:
-        server_sock.settimeout(RECEIVE_TIMEOUT)
-        server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
-        server_sock.sendall(type.encode('utf-8'))
-        server_sock.sendall(json.dumps(request_data).encode('utf-8'))
-        server_sock.recv(1)
-
+    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_sock.settimeout(RECEIVE_TIMEOUT)
+    server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
+    server_sock.sendall(type.encode('utf-8'))
+    server_sock.sendall(json.dumps(request_data).encode('utf-8'))
+    server_sock.recv(1)
+    if (type == EXECUTE and "OUTPUT" in request_data):
+        thread = threading.Thread(target=poll_updates, args=(server_sock, ))
+        thread.daemon = True
+        thread.start()
+    else:
+        server_sock.close()
 def request_read(job_id, file, readers, workers, num_tasks):
     for i in range(num_tasks):
         request = {
@@ -111,8 +117,8 @@ def start_job(job_data):
 
     workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
 
-    print(f"workers: {workers}")
-    print(f"readers: {readers}")
+    # print(f"workers: {workers}")
+    # print(f"readers: {readers}")
 
     stage_2_workers = workers[: len(workers) // 2]
     stage_3_workers = workers[len(workers) // 2:]
@@ -134,6 +140,14 @@ def start_job(job_data):
     request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path, is_stateful)
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
+
+def poll_updates(socket):
+    ThreadSock(socket)
+    while(1):
+        data_size = int.from_bytes(socket.recv(4), byteorder="little")
+        data = socket.recv(data_size)
+        print(data.decode())
+
 
 def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id):
     """
@@ -157,7 +171,7 @@ def handle_failed(failed_nodes):
     for failed in failed_nodes:
         new_vm = get_workers(1)[0] # Find replacement id
         affected_jobs = affected[failed]
-        print("AFFECTED_JOBS", affected_jobs)
+        # print("AFFECTED_JOBS", affected_jobs)
         members = get_machines() + [machine_id]
         for stage in affected_jobs:
             retransmit_failed_job_intermediate_stage(stage, failed, new_vm)
@@ -166,7 +180,7 @@ def handle_failed(failed_nodes):
             for member in members:
                 send_request(UPDATE, update_message, member)
 def poll_failures():
-    print("MEMBERS", member_jobs.items())
+    # print("MEMBERS", member_jobs.items())
     global member_list
     while (1):
         sleep(1)
@@ -183,7 +197,7 @@ def handle_client(client_sock, ip):
         # Start Job
         data = client_sock.recv(1024 * 1024)
         job_data = json.loads(data.decode('utf-8'))
-        print(f"Starting Job: {job_data}")
+        # print(f"Starting Job: {job_data}")
         start_job(job_data)
         poll_failures()
 
@@ -216,8 +230,8 @@ def start_server(machine_id):
     for member in member_list:
         member_jobs.add(member, [])
     
-    print(member_list)
-    print(member_jobs)
+    # print(member_list)
+    # print(member_jobs)
 
     while True:
         try:

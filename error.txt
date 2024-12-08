@@ -1,4 +1,4 @@
-INPUT:  {"key": "1:1", "value": "{\"key\": \"TrafficSigns_1000:1\", \"value\": \"\\ufeff-9822752.01226842,4887653.93470103,1,Streetname - Mast Arm,\\\"16\\\"\\\" X 42\\\"\\\"\\\", ,Traffic Signal Mast Arm, ,Streetname, ,D3-1,Champaign,1,,AERIAL,L,Mercury Dr,1,\\n\"}"}
+INPUT:  {"key": "STATE", "value": "null"}
 
 INPUT:  {"key": "2:0", "value": "{\"key\": \"Stop\", \"value\": \"-9828647.69779254,4879492.90641255,19,Stop,\\\"30\\\"\\\"\\\", ,Unpunched Telespar,2010,Regulatory, ,R1-1,Champaign,19,,AERIAL,E,,19,\\n\"}"}
 
