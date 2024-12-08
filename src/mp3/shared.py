@@ -211,7 +211,8 @@ def request_merge_file(receiver_id, server_file_name):
 
             # Response
             data = server.recv(BUFFER_SIZE).decode("utf-8")
-            
+            # print("DATA MERGE", bin(data))
+            # print("DATA RECEIVED", data)
             if (data == b'' or data == "ERROR"): # Expected OK
                 return -1   
     

@@ -18,8 +18,8 @@ start() {
   rm src/member_list.txt
   touch src/member_list.txt
   dgrep_server "$@" 2> /dev/null &
-  failure_detector "$@" &
-  python src/mp3/file_system.py 2> /dev/null "$@" &
+  failure_detector "$@" > /dev/null &
+  python src/mp3/file_system.py "$@" > /dev/null &
   if [ "$1" == "1" ]; then
     python src/mp4/leader.py "$@" &
   fi

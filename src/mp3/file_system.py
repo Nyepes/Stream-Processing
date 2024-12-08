@@ -242,6 +242,7 @@ def handle_client(client_socket: socket.socket, machine_id: str, ip_address: str
     elif (mode == START_MERGE):
         print(f"START MERGE REQUEST START: {file_name}")   
         merge_file(file_name)
+        client_socket.sendall("OK".encode())
         print(f"START MERGE REQUEST FINISHED: {file_name}")       
     elif (mode == JOIN):
         member_list = get_machines() # Update member list as new node joined
@@ -323,15 +324,9 @@ def merge_file(file_name):
         max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))  # receive version and update
         
         while (1):  # receive memtable data
-            # read = s.recv(4)
-            # chunk_size = int.from_bytes(read, byteorder="little")
-            # print(chunk_size)
             content = s.recv(1024 * 1024)
             if (content == b''): break
-
-            # print(f"ACTUAL LEN {len(content)}")
             status = s.recv(1)
-            
             buffer.append((content.decode('utf-8'), status.decode('utf-8')))
             
     new_version = max_version + 1
@@ -340,11 +335,11 @@ def merge_file(file_name):
         
         for chunk, status in memtable.get(file_name):  # head replica
             if not chunk or status == "F": continue
-            s.sendall(chunk)  # REVISE chunk[:-1]
+            s.sendall(chunk)  # DO NOT REVISE
         
         for chunk, status in buffer:  # other replicas
             if not chunk or status == "F": continue
-            s.sendall(chunk.encode())
+            s.sendall(chunk[:-1].encode())
     
         s.shutdown(socket.SHUT_WR)  # close current socket
 
@@ -356,7 +351,7 @@ def merge_file(file_name):
 
         for chunk, status in buffer:
             if not chunk or status == "F": continue
-            file.write(chunk)
+            file.write(chunk[:-1])
 
     memtable.set_file_version(file_name, max_version + 1)
     metadata = get_server_file_metadata(file_name)
