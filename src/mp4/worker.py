@@ -82,9 +82,7 @@ def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
         local_log.flush()
         log_name = local_log.name
         append(machine_id, log_name, hydfs_log)
-        sleep(0.0001) # Nerf our system
         merge(hydfs_log)
-        sleep(0.0001) # Let Spark win some
         qsize = processed.qsize()
         for i in range(qsize):
             val = processed.get()
@@ -326,10 +324,7 @@ def prepare_execution(leader_socket):
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=error_f,
-        universal_newlines=True
     )
-    # poller = select.poll()
-    # poller.register(process.stdout, select.POLLIN)
     job_metadata["POLLER"] = None
     make_non_blocking(process.stdout.fileno())
     
@@ -337,15 +332,12 @@ def prepare_execution(leader_socket):
     del job_metadata["PATH"]
     job_metadata["PROCESS"] = process
     current_jobs.add(job_id, job_metadata)
-    # print(job_metadata)
-    # Handle Output
     writer = threading.Thread(target=handle_output, args=(job_id,state,))
     writer.daemon = True
     writer.start()
     leader_socket.sendall('D'.encode())
 
 def pipe_input(process, line):
-    process.stdin.flush()
     process.stdin.write(line)
     process.stdin.flush()
 
