@@ -75,6 +75,10 @@ class Dict:
         with self.lock:
             self.dict[key] += 1
 
+    def contains(self, key):
+        with self.lock:
+            return key in self.dict
+
     def delete(self, key):
         """
         Deletes the key-value pair associated with the key.

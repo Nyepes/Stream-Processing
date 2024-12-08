@@ -13,7 +13,7 @@ from collections import defaultdict
 from src.shared.DataStructures.mem_table import MemTable
 from src.shared.constants import RECEIVE_TIMEOUT, HOSTS, RAINSTORM_PORT, MAX_CLIENTS
 from src.mp4.constants import READ, EXECUTE, RUN, UPDATE
-from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create
+from src.mp3.shared import get_machines, generate_sha1, append, get_server_file_path, merge, id_from_ip, create, get_receiver_id_from_file, get_client_file_metadata, get_client_file_path, request_file
 from src.shared.DataStructures.Dict import Dict
 from src.shared.ThreadSock import ThreadSock
 
@@ -70,16 +70,23 @@ def get_process_output(process, poller, timeout_sec = 5):
 
 def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
     cur_time = time()
-    if (last_merge + 4 < cur_time):
+
+    if (random.random() < 1/50):
         local_log.flush()
         log_name = local_log.name
-        
         append(machine_id, log_name, hydfs_log)
-        # merge(hydfs_log)
-        while (not processed.empty()):
+        sleep(0.0001) # Nerf our system
+        merge(hydfs_log)
+        sleep(0.0001) # Let Spark win some
+        qsize = processed.qsize()
+        for i in range(qsize):
             val = processed.get()
             sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
-            send_int(sender_sock, int(val[1]))
+            try:
+                send_int(sender_sock, int(val[1]))
+            except (ConnectionResetError, BrokenPipeError):
+                processed.put(val[0], val[1]) # If error leave on queue and wait for retry or who to ack changes
+
         local_log.truncate(0)
         local_log.seek(0, 0)
 
@@ -257,9 +264,9 @@ def recover_log(job):
     file_name = f"{job_id}-{failed_node_id}.log"
     server_id = get_receiver_id_from_file(machine_id, file_name)
     file_version = get_client_file_metadata(file_name)["version"]
-
-    self_own = get_hydfs_log_name(job)
     local_cache_path = get_client_file_path(file_name)
+    request_file(server_id, file_name, local_cache_path)
+    self_own = get_hydfs_log_name(job)
 
     # creates or appends it to hdfs
 
@@ -271,12 +278,23 @@ def recover_log(job):
     # read line by line to modify bool dict
     with open(local_cache_path, "r") as file:
         for line in file:
-            key, val = decode_key_val(line)
+            if line[0] == 'N':
+                line = line[1:]
+            if (line == ""):
+                continue
+
+            print(line)
+            key_vals = decode_key_val(line)
+            key = key_vals["key"]
             _, line_num = key.split(":")
             processed_streams.add((job_id, line_num), True)
+            # TODO: FOr stateful handle value
 
 def prepare_execution(leader_socket):
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
+    print(job_metadata)
+    if ("PREV" in job_metadata):
+        recover_log(job_metadata)
     operation_exe = job_metadata["PATH"]
     job_id = int(job_metadata["JOB_ID"]) # Job id
 
@@ -309,9 +327,13 @@ def run_job(job_id, client_id, client: socket.socket):
     job = current_jobs.get(job_id) 
 
     process = job["PROCESS"] # subprocess Popen()
-    file = open("file.txt", "wb")
     while (1):
-        data_length = client.recv(4)
+        try:
+            data_length = client.recv(4)
+        except (ConnectionResetError):
+            # Previous Node crashed Wait for next to connect
+            return
+
         if (data_length == b''):
             print("FINISHED")
             break
@@ -333,7 +355,6 @@ def run_job(job_id, client_id, client: socket.socket):
         processed_streams.add((job_id, client_id, line_number), True) # set == hashmap(key, bool)
         new_key = f"{client_id}:{line_number}"
         p_input = encode_key_val(new_key, stream) + '\n'
-        file.write(p_input.encode())
         pipe_input(process, p_input.encode())
 
     # process.stdin.close()    
@@ -352,13 +373,13 @@ def partition_file(leader_socket: socket.socket):
     # We should ignore unmerged data so only bring next stage vm id
     leader_socket.sendall('D'.encode())
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
-    
     filename = job_metadata["FILE"] # Read from
     num_tasks = int(job_metadata["NUM_TASKS"]) # How many nodes
     key = int(job_metadata["KEY"]) # If Hash % num_tasks send to vm_id
-    vm_id = int(job_metadata["VM"]) # vm to send data to
+    vm_id = int(job_metadata["VM"][0]) # vm to send data to
     stage_id = int(job_metadata["JOB_ID"]) # job_id
         
+    current_jobs.add(stage_id, job_metadata)
     queue = Queue(maxsize=10240)
     queue_lock = threading.Lock()
     next_stage = setup_connection(vm_id, stage_id + 1)
@@ -366,7 +387,7 @@ def partition_file(leader_socket: socket.socket):
     # sock_id = sock_id = f"{stage_id + 1}{client_id}S"
     # open_sockets.add(sock_id, next_stage)
     job_metadata["SOCKETS"] = [None] * num_tasks
-    job_metadata["SOCKETS"][key] = next_stage
+    job_metadata["SOCKETS"][key] = ThreadSock(next_stage)
 
     thread = threading.Thread(target=listen_acks, args=(queue, job_metadata["SOCKETS"], key, queue_lock))
     thread.daemon = True
@@ -401,8 +422,10 @@ def setup_connection(vm_id, job_id):
     return sock
 
 def update_connection(leader):
+    print ("UPDATING CONNECTION")
     new_data = leader.recv(1024 * 1024)
     new_data.decode('utf-8')
+    leader.sendall("D".encode())
     config = decode_key_val(new_data)
 
     # MESSAGE FORM: update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
@@ -410,14 +433,19 @@ def update_connection(leader):
     failed = config["VM"]
     stage = config["STAGE"] # (job_id, "stage1")
     new_vm = config["NEW"] # [vm_id_1, vm_id2, ...]
+    print ("CONFIG", config)
+
 
     if (current_jobs.contains(stage - 1)): # Look for sender and update their sockets
         job = current_jobs.get(stage - 1, copy=False)
+        print("JOB", job)
         if ("VM" in job and failed in job["VM"]):
             idx = job["VM"].index(failed)
             new_sock = setup_connection(new_vm, stage)
             job["VM"][idx] = new_vm
             job["SOCKETS"][idx].replace(new_sock)
+
+        print("NEW JOB", job)
     # open_
 def get_ip_id(sock):
     return id_from_ip(socket.gethostbyaddr(sock.getpeername()[0])[0])
@@ -437,9 +465,10 @@ def handle_client(client: socket.socket, ip_address):
         open_sockets.add(f"{stage_id - 1}{sock_id}R", thread_sock) # IP address to client socket
         run_job(stage_id, sock_id, thread_sock)
     elif (mode == UPDATE):
-        return
+
         # Updates connection on failures
-        # update_connection(client)
+        update_connection(client)
+        return
 
 
 
