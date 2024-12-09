@@ -133,7 +133,7 @@ def create(file_name, server_file_name):
     # server_id = get_receiver_id_from_file(0, file_name)
     if (res != 0): # If any of the replicas already has the file, exit
         print("File already Created")
-        exit(1)
+        return
     
     receiver_id = get_receiver_id_from_file(my_id, server_file_name) # This is replica I'm going to send the actual file content to
     # print(f"append to: {receiver_id}")

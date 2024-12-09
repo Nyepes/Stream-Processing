@@ -20,12 +20,12 @@ machine_id = int(sys.argv[1])
 job_info = None # what we send in the request
 cur_jobs = None
 member_jobs = None
-max_task_id = 0
+max_task_id = 3
 member_list = []
 
 def send_request(type, request_data, to):
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_sock.settimeout(RECEIVE_TIMEOUT)
+    server_sock.settimeout(RECEIVE_TIMEOUT + 5)
     server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
     server_sock.sendall(type.encode('utf-8'))
     server_sock.sendall(json.dumps(request_data).encode('utf-8'))
@@ -38,11 +38,13 @@ def send_request(type, request_data, to):
         server_sock.close()
 def request_read(job_id, file, readers, workers, num_tasks):
     for i in range(num_tasks):
+        vms = [0] * num_tasks
+        vms[i] = workers[i]
         request = {
             "FILE": file,
             "NUM_TASKS": num_tasks,
             "KEY": i,
-            "VM": [workers[i]],
+            "VM": vms,
             "JOB_ID": job_id
         }
         send_request(READ, request, readers[i])
@@ -130,7 +132,9 @@ def start_job(job_data):
     job_data["READERS"] = readers
     job_data["STAGE2"] = stage_2_workers
     job_data["STAGE3"] = stage_3_workers
-
+    j = {"r": readers, "s2": stage_2_workers, "s3": stage_3_workers}
+    file = open(f"job_data-{task_id}", "w")
+    file.write(json.dumps(j))
     cur_jobs.add(task_id, job_data)
 
     for worker in stage_2_workers:
@@ -173,7 +177,7 @@ def run_job(job_id, client: socket.socket):
 
         if (processed_streams.get((job_id, line_number))): # CHANGE!!!!!
             # No neeed to ack
-            print("Filtered", (job_id, line_number))
+            print("Filtered", (job_id, line_number), file=sys.stderr)
             continue
         
         processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
@@ -200,7 +204,7 @@ def write_output(job_id):
             dict_data = decode_key_val(val)
             line = f"{dict_data['key']}:{dict_data['value']}"
             
-            print(line)
+            print(line, file=sys.stderr)
             output.write(line + '\n')
             processed_data += 1
 
@@ -211,20 +215,6 @@ def write_output(job_id):
                 output.truncate(0)
                 output.seek(0,0)
     # process.stdin.close()    
-def pipe_file(sock):
-    ThreadSock(sock)
-    while(1):
-        try:
-            data_size = int.from_bytes(sock.recv(4), byteorder="little")
-        except (ConnectionRefusedError, socket.timeout):
-            continue
-        if (data_size == b''):
-            return
-        data = sock.recv(data_size)
-
-        if (data == b""):
-            return
-        print(data.decode())
 
 
 def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id):
@@ -234,10 +224,7 @@ def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id)
         failed_node_id (int): The ID of the node that failed.
         new_node_id (int): The ID of the new node that will replace the failed node.
     """
-    print("LEADER", job_info.items(), file=sys.stderr)
-    print("LEADER", (failed_node_id, stage), file=sys.stderr)
     request = job_info.get((failed_node_id, stage))
-    print("LEADER", request, file=sys.stderr)
 
     request["PREV"] = failed_node_id
     send_request(EXECUTE, request, new_node_id)
