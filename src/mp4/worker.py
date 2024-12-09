@@ -303,7 +303,7 @@ def recover_log(job, stateful):
                 line = line[1:]
             if (line == ""):
                 continue
-            # print("LINE"line, file=sys.stderr)
+            print("LINE", line, file=sys.stderr)
             key_vals = decode_key_val(line)
             key = key_vals["key"]
             _, line_num = key.split(":")
@@ -330,10 +330,11 @@ def prepare_execution(leader_socket):
         stderr=error_f
     )
     sleep(0.5)
-    make_non_blocking(process.stdout.fileno())
     job_metadata["PROCESS"] = process
 
     stateful = process.stdout.readline()
+    make_non_blocking(process.stdout.fileno())
+
     print("Stateul?", stateful)
     if ("PREV" in job_metadata):
         recover_log(job_metadata, stateful == "STATEFUL")

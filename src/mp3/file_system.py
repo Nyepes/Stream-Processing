@@ -66,30 +66,27 @@ def handle_merge(file_name, s, ip_address):
 
     for chunk, status in data:  # send memtable data
         if not chunk: continue
-        # print(chunk.decode())
-        # length = len(chunk)
-        # length = length.to_bytes(4, byteorder="little")
-        # print(int.from_bytes(length, byteorder="little"))
 
-        s.sendall(chunk + status.encode())
+        length = len(chunk.decode())
+        length = length.to_bytes(4, byteorder="little")
+
+        s.sendall(length + chunk + status.encode())
     
     s.shutdown(socket.SHUT_WR)  # close write end
 
     new_version = int.from_bytes(s.recv(4), byteorder="little")  # receive new version
     
     with open(get_server_file_path(file_name), "a") as f:  # append new data
-        for chunk, status in data:
+        for chunk, status in data: # read memtable data
             if not chunk or status == "N": continue
-            chunk = chunk.decode('utf-8')
-            if chunk[-1] == "N":
-                f.write(chunk[:-1])
-            else:
-                f.write(chunk)
+            f.write(chunk.decode())
         
-        while (1):
+        while (1): # Assume its only data
             data = s.recv(1024 * 1024)
             if (data == b''): break
             f.write(data.decode('utf-8'))
+
+        f.flush()
         
     memtable.set_file_version(file_name, new_version)
     metadata = get_server_file_metadata(file_name)
@@ -325,13 +322,22 @@ def merge_file(file_name):
         max_version = get_server_file_metadata(file_name)["version"]
 
     for i, s in enumerate(sockets):
-        max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))  # receive version and update
         
+        max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))  # receive version and update
+        chunk_length = int.from_bytes(s.recv(4), byteorder="little")
+        print(chunk_length, file=sys.stderr)
+        read_bytes = 0
+
         while (1):  # receive memtable data
-            content = s.recv(1024 * 1024)
-            if (content == b''): break
-            status = s.recv(1)
-            buffer.append((content.decode('utf-8'), status.decode('utf-8')))
+            new_content = s.recv(min(chunk_length - read_bytes, 1024 * 1024))
+            read_bytes += len(new_content)
+            if (read_bytes == chunk_length): break
+            buffer.append([new_content.decode('utf-8'), 0])
+        
+        status = s.recv(1)
+        
+        for i in range(len(buffer)):
+            buffer[i][1] = status.decode('utf-8')
             
     new_version = max_version + 1
     for s in sockets:
@@ -339,11 +345,11 @@ def merge_file(file_name):
         
         for chunk, status in memtable.get(file_name):  # head replica
             if not chunk or status == "F": continue
-            s.sendall(chunk)  # DO NOT REVISE
+            s.sendall(chunk)
         
         for chunk, status in buffer:  # other replicas
             if not chunk or status == "F": continue
-            s.sendall(chunk[:-1].encode())
+            s.sendall(chunk.encode())
     
         s.shutdown(socket.SHUT_WR)  # close current socket
 
@@ -351,18 +357,13 @@ def merge_file(file_name):
     with open(get_server_file_path(file_name), "a") as file:
         for chunk, status in memtable.get(file_name):
             if not chunk or status == "F": continue
-            chunk = chunk.decode('utf-8')
-            if chunk[-1] == "N":
-                file.write(chunk[:-1])
-            else:
-                file.write(chunk)
+            file.write(chunk.decode())
 
         for chunk, status in buffer:
             if not chunk or status == "F": continue
-            if chunk[-1] == "N":
-                file.write(chunk[:-1])
-            else:
-                file.write(chunk)
+            file.write(chunk)
+        
+        file.flush()
 
     memtable.set_file_version(file_name, max_version + 1)
     metadata = get_server_file_metadata(file_name)
