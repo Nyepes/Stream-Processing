@@ -80,7 +80,11 @@ def handle_merge(file_name, s, ip_address):
     with open(get_server_file_path(file_name), "a") as f:  # append new data
         for chunk, status in data:
             if not chunk or status == "N": continue
-            f.write(chunk.decode('utf-8'))
+            chunk = chunk.decode('utf-8')
+            if chunk[-1] == "N":
+                f.write(chunk[:-1])
+            else:
+                f.write(chunk)
         
         while (1):
             data = s.recv(1024 * 1024)
@@ -347,11 +351,18 @@ def merge_file(file_name):
     with open(get_server_file_path(file_name), "a") as file:
         for chunk, status in memtable.get(file_name):
             if not chunk or status == "F": continue
-            file.write(chunk.decode('utf-8'))
+            chunk = chunk.decode('utf-8')
+            if chunk[-1] == "N":
+                file.write(chunk[:-1])
+            else:
+                file.write(chunk)
 
         for chunk, status in buffer:
             if not chunk or status == "F": continue
-            file.write(chunk[:-1])
+            if chunk[-1] == "N":
+                file.write(chunk[:-1])
+            else:
+                file.write(chunk)
 
     memtable.set_file_version(file_name, max_version + 1)
     metadata = get_server_file_metadata(file_name)

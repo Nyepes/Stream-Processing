@@ -136,7 +136,7 @@ def start_job(job_data):
     for worker in stage_2_workers:
         member_jobs.increment_list(worker, task_id + 1)
     
-    for worker in stage_2_workers:
+    for worker in stage_3_workers:
         member_jobs.increment_list(worker, task_id + 2)
     
     max_task_id = task_id + 3
@@ -173,6 +173,7 @@ def run_job(job_id, client: socket.socket):
 
         if (processed_streams.get((job_id, line_number))): # CHANGE!!!!!
             # No neeed to ack
+            print("Filtered", (job_id, line_number))
             continue
         
         processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
@@ -182,7 +183,7 @@ def write_output(job_id):
     cur_job = cur_jobs.get(job_id)
     q =  cur_jobs.get(job_id)["QUEUE"]
     output_name = cur_jobs.get(job_id)["OUTPUT_FILE"]
-
+    file = open("o.txt", "w")
     processed_data = 0
     with open(f"{job_id}", "w") as output:
         while(1):
@@ -198,9 +199,11 @@ def write_output(job_id):
                 continue
             dict_data = decode_key_val(val)
             line = f"{dict_data['key']}:{dict_data['value']}"
+            
             print(line)
             output.write(line + '\n')
             processed_data += 1
+
             if (processed_data >= 50):
                 output.flush()
                 append(0, output.name, output_name)
@@ -231,8 +234,11 @@ def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id)
         failed_node_id (int): The ID of the node that failed.
         new_node_id (int): The ID of the new node that will replace the failed node.
     """
-
+    print("LEADER", job_info.items(), file=sys.stderr)
+    print("LEADER", (failed_node_id, stage), file=sys.stderr)
     request = job_info.get((failed_node_id, stage))
+    print("LEADER", request, file=sys.stderr)
+
     request["PREV"] = failed_node_id
     send_request(EXECUTE, request, new_node_id)
 

@@ -7,7 +7,14 @@ from src.mp4.worker import decode_key_val
 #     return [(key, val)]
 
 
-def rain_storm_framework(machine_id, user_defined_job, init=None):
+def rain_storm_framework(machine_id, user_defined_job, init=None, stateful=False):
+    if stateful: 
+        print("STATEFUL")
+        sys.stdout.flush()
+    else:
+        print("STATELESS")
+        sys.stdout.flush()
+
     try:
         for line in sys.stdin:  # Read from stdin line by line
             print("INPUT: ", line, file=sys.stderr)
