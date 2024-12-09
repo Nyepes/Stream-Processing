@@ -17,13 +17,21 @@ from src.mp4.worker import get_hydfs_log_name, from_bytes, decode_key_val
 
 
 machine_id = int(sys.argv[1])
-job_info = None # what we send in the request
-cur_jobs = None
-member_jobs = None
-max_task_id = 3
-member_list = []
+job_info = None # Dictionary mapping (vm_id, job_id) to job configuration
+cur_jobs = None # Dictionary mapping job_id to job data including queues
+member_jobs = None # Dictionary mapping member IDs to list of assigned job IDs
+max_task_id = 3 # Counter for assigning unique task IDs
+member_list = [] # List of active member machine IDs
 
 def send_request(type, request_data, to):
+    """
+    Send a request to another node in the cluster.
+    
+    Args:
+        type: Type of request (READ, EXECUTE, etc)
+        request_data: Dictionary containing request parameters
+        to: ID of destination machine
+    """
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.settimeout(RECEIVE_TIMEOUT + 5)
     server_sock.connect((HOSTS[to - 1], RAINSTORM_PORT))
@@ -36,7 +44,18 @@ def send_request(type, request_data, to):
         thread.start()
     else:
         server_sock.close()
+
 def request_read(job_id, file, readers, workers, num_tasks):
+    """
+    Send read requests to nodes to read input file chunks.
+    
+    Args:
+        job_id: ID of the job
+        file: Input file path
+        readers: List of reader node IDs
+        workers: List of worker node IDs
+        num_tasks: Number of tasks to split input into
+    """
     for i in range(num_tasks):
         vms = [0] * num_tasks
         vms[i] = workers[i]
@@ -50,6 +69,15 @@ def request_read(job_id, file, readers, workers, num_tasks):
         send_request(READ, request, readers[i])
 
 def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
+    """
+    Send requests to set up intermediate processing stage.
+    
+    Args:
+        job_id: ID of the job
+        stage_vms: List of VMs for current stage
+        next_stage: List of VMs for next stage
+        binary_path: Path to executable for this stage
+    """
     for start, vm in enumerate(stage_vms):
         request = {
             "PATH": binary_path,
@@ -58,10 +86,20 @@ def request_intermediate_stage(job_id, stage_vms, next_stage, binary_path):
             "START": start,
             "NUM_TASKS": len(next_stage)
         }
-        job_info.add((vm, job_id), request) # We need job id to avoid rewriting the job info if its different stages
+        job_info.add((vm, job_id), request) # Store job info for failure recovery
         send_request(EXECUTE, request, vm)
 
 def request_final_stage(job_id, writers, output_file, binary_path, is_stateful):
+    """
+    Send requests to set up final processing stage.
+    
+    Args:
+        job_id: ID of the job
+        writers: List of writer node IDs
+        output_file: Output file path
+        binary_path: Path to executable
+        is_stateful: Whether processing maintains state
+    """
     for start, vm in enumerate(writers):
         request = {
             "PATH": binary_path,
@@ -75,10 +113,19 @@ def request_final_stage(job_id, writers, output_file, binary_path, is_stateful):
         send_request(EXECUTE, request, vm)
 
 def get_readers(num_jobs, hydfs_dir):
+    """Get list of reader nodes based on file location"""
     file_owners = get_replica_ids(generate_sha1(hydfs_dir))
     return file_owners[:num_jobs]
 
 def get_workers(num_tasks):
+    """
+    Select worker nodes with least current load.
+    
+    Args:
+        num_tasks: Number of workers needed
+    Returns:
+        List of selected worker node IDs
+    """
     num_jobs = []
     global member_jobs
     jobs = member_jobs.items()
@@ -92,7 +139,7 @@ def get_workers(num_tasks):
     return ans
 
 def update_membership():
-    # return
+    """Update membership list and initialize job tracking for new members"""
     global member_list
     member_set = set(member_list)
     new_memberlist = set(get_machines())
@@ -102,7 +149,14 @@ def update_membership():
     member_list = new_memberlist
 
 def start_job(job_data):
+    """
+    Initialize and start a new job.
     
+    Args:
+        job_data: Dictionary containing job configuration
+    Returns:
+        task_id: ID assigned to the job
+    """
     update_membership()
     global max_task_id
 
@@ -116,19 +170,16 @@ def start_job(job_data):
     is_stateful = job_data["STATEFUL"]
     job_data["QUEUE"] = Queue(maxsize=10240)
 
+    # Select nodes for each stage
     readers = get_readers(num_tasks, hydfs_dir)
-
     for reader in readers:
         member_jobs.increment_list(reader, task_id)
 
     workers = get_workers(2 * num_tasks) # num_tasks per stage 2 stages
-
-    # print(f"workers: {workers}")
-    # print(f"readers: {readers}")
-
     stage_2_workers = workers[: len(workers) // 2]
     stage_3_workers = workers[len(workers) // 2:]
 
+    # Store job configuration
     job_data["READERS"] = readers
     job_data["STAGE2"] = stage_2_workers
     job_data["STAGE3"] = stage_3_workers
@@ -137,6 +188,7 @@ def start_job(job_data):
     file.write(json.dumps(j))
     cur_jobs.add(task_id, job_data)
 
+    # Track job assignments
     for worker in stage_2_workers:
         member_jobs.increment_list(worker, task_id + 1)
     
@@ -145,21 +197,28 @@ def start_job(job_data):
     
     max_task_id = task_id + 3
     
+    # Start job stages
     request_final_stage(task_id + 2, stage_3_workers, output_dir, op_2_path, is_stateful)
     request_intermediate_stage(task_id + 1, stage_2_workers, stage_3_workers, op_1_path)
     request_read(task_id, hydfs_dir, readers, stage_2_workers, num_tasks)
     return task_id
 
-processed_streams = None
+processed_streams = None # Track processed data streams
 
 def run_job(job_id, client: socket.socket):
+    """
+    Process data streams for a job.
+    
+    Args:
+        job_id: ID of the job
+        client: Socket connection to client
+    """
     queue =  cur_jobs.get(job_id)["QUEUE"]
     while (1):
         try:
             data_length = client.recv(4)
         except (ConnectionResetError):
             print("CONNECTION RESET")
-            # Previous Node crashed Wait for next to connect
             return
         except(ConnectionRefusedError, socket.timeout):
             sleep(1)
@@ -172,18 +231,23 @@ def run_job(job_id, client: socket.socket):
 
         received_stream = decode_key_val(data)
         line_number = received_stream["key"]
-        
         stream = received_stream["value"]
 
-        if (processed_streams.get((job_id, line_number))): # CHANGE!!!!!
-            # No neeed to ack
+        # Filter duplicate streams
+        if (processed_streams.get((job_id, line_number))):
             print("Filtered", (job_id, line_number), file=sys.stderr)
             continue
         
-        processed_streams.add((job_id, line_number), True) # CHANGE!!!!!
+        processed_streams.add((job_id, line_number), True)
         queue.put(stream)
 
 def write_output(job_id):
+    """
+    Write job output to file.
+    
+    Args:
+        job_id: ID of the job
+    """
     cur_job = cur_jobs.get(job_id)
     q =  cur_jobs.get(job_id)["QUEUE"]
     output_name = cur_jobs.get(job_id)["OUTPUT_FILE"]
@@ -207,38 +271,45 @@ def write_output(job_id):
             output.write(line + '\n')
             processed_data += 1
 
+            # Periodically flush output
             if (processed_data >= 50):
                 output.flush()
                 append(0, output.name, output_name)
                 merge(output_name)
                 output.truncate(0)
                 output.seek(0,0)
-    # process.stdin.close()    
-
 
 def retransmit_failed_job_intermediate_stage(stage, failed_node_id, new_node_id):
     """
+    Retransmit job to new node after failure.
+    
     Args:
-        stage (int): 0 - reader, 1 - intermediate, 2 - final
-        failed_node_id (int): The ID of the node that failed.
-        new_node_id (int): The ID of the new node that will replace the failed node.
+        stage: Stage number (0=reader, 1=intermediate, 2=final)
+        failed_node_id: ID of failed node
+        new_node_id: ID of replacement node
     """
     request = job_info.get((failed_node_id, stage))
-
     request["PREV"] = failed_node_id
     send_request(EXECUTE, request, new_node_id)
 
 def handle_failed(failed_nodes):
+    """
+    Handle failed nodes by reassigning their jobs.
+    
+    Args:
+        failed_nodes: List of failed node IDs
+    """
     affected = {}
     
+    # Track affected jobs
     for node in failed_nodes:
         affected[node] = member_jobs.get(node)
         member_jobs.delete(node)
     
+    # Reassign jobs to new nodes
     for failed in failed_nodes:
         new_vm = get_workers(1)[0] # Find replacement id
         affected_jobs = affected[failed]
-        # print("AFFECTED_JOBS", affected_jobs)
         members = get_machines() + [machine_id]
         for stage in affected_jobs:
             retransmit_failed_job_intermediate_stage(stage, failed, new_vm)
@@ -246,8 +317,9 @@ def handle_failed(failed_nodes):
             update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
             for member in members:
                 send_request(UPDATE, update_message, member)
+
 def poll_failures():
-    # print("MEMBERS", member_jobs.items())
+    """Continuously monitor for node failures"""
     global member_list
     while (1):
         sleep(1)
@@ -257,8 +329,14 @@ def poll_failures():
             handle_failed(failed)
             member_list = new_machines
         
- 
 def handle_client(client_sock, ip):
+    """
+    Handle client connection.
+    
+    Args:
+        client_sock: Socket connection to client
+        ip: Client IP address
+    """
     mode = client_sock.recv(1)
     if (mode == b"S"):
         # Start Job
@@ -274,11 +352,10 @@ def handle_client(client_sock, ip):
 
 def start_server(machine_id):
     """
-    Creates a server that listens on a specified port and handles client connections.
-    It constantly waits for new connections and creates a new thread to handle each client connection.
-
-    Parameters:
-        machine_id (str): The ID of the machine.
+    Start leader server to coordinate distributed processing.
+    
+    Args:
+        machine_id: ID of this machine
     """
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
@@ -289,6 +366,7 @@ def start_server(machine_id):
     server.bind((HOSTS[machine_id - 1], LEADER_PORT))
     server.listen(MAX_CLIENTS)
     
+    # Initialize global state
     global cur_jobs, member_jobs, job_info, processed_streams
     processed_streams = Dict(bool)
     cur_jobs = Dict(dict)
@@ -297,14 +375,13 @@ def start_server(machine_id):
     
     sleep(7)
     
+    # Initialize membership
     global member_list
     member_list = get_machines() + [machine_id]
     for member in member_list:
         member_jobs.add(member, [])
-    
-    # print(member_list)
-    # print(member_jobs)
 
+    # Main server loop
     while True:
         try:
             client_socket, ip_address = server.accept()
