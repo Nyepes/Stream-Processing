@@ -85,7 +85,9 @@ def randomized_sync_log(local_log, hydfs_log, processed: Queue, last_merge):
         qsize = processed.qsize()
         for i in range(qsize):
             val = processed.get()
-            # print("QUEUE VALUE:", val, file=sys.stderr)
+            print("QUEUE VALUE:", val, file=sys.stderr)
+            if not isinstance(val, tuple):
+                continue
             sender_sock = open_sockets.get(val[0], copy=False) #Should already have what we need
             try:
                 send_int(sender_sock, int(val[1]))
@@ -213,6 +215,7 @@ def pipe_vms(job):
             json_key_val = encode_key_val(key_val[0], key_val[1])
             queues[output_idx].put((line_number, json_key_val))
             json_string = encode_key_val(line_number, json_key_val)
+            print(output_idx, job["SOCKETS"])
             send_data(job["SOCKETS"], output_idx, json_string)
             line_number += job["NUM_TASKS"]
         last_merge = randomized_sync_log(local_processed_log, log_name, processed_data, last_merge)
@@ -287,10 +290,8 @@ def recover_log(job, stateful):
 
     # creates or appends it to hdfs
 
-    try:
-        create(local_cache_path, self_own)
-    except:
-        append(machine_id, local_cache_path, file_name)
+    
+    append(machine_id, local_cache_path, file_name)
 
     # Assume stateful
 
@@ -400,6 +401,7 @@ def send_data(sockets, idx, data):
             sleep(5)
 
 def partition_file(leader_socket: socket.socket):
+    print("Partition START")
     # We should ignore unmerged data so only bring next stage vm id
     leader_socket.sendall('D'.encode())
     job_metadata = json.loads(leader_socket.recv(1024 * 1024))
@@ -432,7 +434,7 @@ def partition_file(leader_socket: socket.socket):
         while (1):
             line = file.readline()
             if (not line):
-                sleep(1000)
+                print("Done")
                 continue
             stream_id = f"{filename}:{linenumber}"
             hash_parition = generate_sha1(stream_id)
@@ -459,7 +461,7 @@ def update_connection(leader):
     config = decode_key_val(new_data)
 
     # MESSAGE FORM: update_message = {"VM": failed, "STAGE": stage, "NEW": new_vm}
-
+    print("h1")
     failed = config["VM"]
     stage = config["STAGE"] # (job_id, "stage1")
     new_vm = config["NEW"] # [vm_id_1, vm_id2, ...]
@@ -472,6 +474,7 @@ def update_connection(leader):
             new_sock = setup_connection(new_vm, stage)
             job["VM"][idx] = new_vm
             job["SOCKETS"][idx].replace(new_sock)
+            print("JOB", job)
 
     # open_
 def get_ip_id(sock):

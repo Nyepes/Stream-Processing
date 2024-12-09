@@ -325,7 +325,6 @@ def merge_file(file_name):
         
         max_version = max(max_version, int.from_bytes(s.recv(4), byteorder="little"))  # receive version and update
         chunk_length = int.from_bytes(s.recv(4), byteorder="little")
-        print(chunk_length, file=sys.stderr)
         read_bytes = 0
 
         while (1):  # receive memtable data
