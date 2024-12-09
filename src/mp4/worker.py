@@ -395,7 +395,7 @@ def send_data(sockets, idx, data):
             send_int(socket, len(data))
             socket.sendall(data.encode())
             return
-        except (ConnectionResetError):
+        except Exception as e:
             sleep(5)
 
 def partition_file(leader_socket: socket.socket):

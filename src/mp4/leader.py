@@ -187,7 +187,6 @@ def write_output(job_id):
     cur_job = cur_jobs.get(job_id)
     q =  cur_jobs.get(job_id)["QUEUE"]
     output_name = cur_jobs.get(job_id)["OUTPUT_FILE"]
-    file = open("o.txt", "w")
     processed_data = 0
     with open(f"{job_id}", "w") as output:
         while(1):
