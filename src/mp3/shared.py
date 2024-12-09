@@ -140,6 +140,7 @@ def create(file_name, server_file_name):
     res = request_append_file(receiver_id, server_file_name, file_name, "N")
     receiver_id = get_receiver_id_from_file(0, server_file_name)
     request_merge_file(receiver_id, server_file_name)
+
     return res
 
 def request_append_file(receiver_id, server_file_name, local_file_name, status):
@@ -175,7 +176,7 @@ def request_append_file(receiver_id, server_file_name, local_file_name, status):
             
             # Receive response
             data = server.recv(BUFFER_SIZE).decode("utf-8") # Expects OK
-            
+            print("DATA RECV APPEND", data)
             if (data == b'' or data == "ERROR"):
                 return -1
 
