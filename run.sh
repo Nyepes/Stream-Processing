@@ -10,7 +10,7 @@ dgrep() {
 
 # failure_detector function: Simulates a simple check for failures
 failure_detector() {
-  python src/mp2/failure_detector.py "$@"
+  python src/FailureDetector/failure_detector.py "$@"
 }
 
 start() {
@@ -19,47 +19,47 @@ start() {
   touch src/member_list.txt
   dgrep_server "$@" 2> /dev/null &
   failure_detector "$@" > /dev/null &
-  python src/mp3/file_system.py "$@" > /dev/null &
+  python src/FileSystem/file_system.py "$@" &
   if [ "$1" == "1" ]; then
-    python src/mp4/leader.py "$@" &
+    python src/Streaming/leader.py "$@" > /dev/null&
   fi
-  python src/mp4/worker.py "$@" 
+  python src/Streaming/worker.py > /dev/null "$@" 
 }
 
 members() {
-  python src/mp2/utils/list_members.py
+  python src/FailureDetector/utils/list_members.py
 }
 
 ls() {
-  python src/mp3/bin/ls.py "$@"
+  python src/FileSystem/bin/ls.py "$@"
 }
 
 store() {
-  python src/mp3/bin/store.py "$@"
+  python src/FileSystem/bin/store.py "$@"
 }
 
 get_id() {
-  python "src/mp2/utils/get_id.py"
+  python "src/FailureDetector/utils/get_id.py"
 }
 
 toggle_sus() {
-  python "src/mp2/utils/toggle_suspicion.py"
+  python "src/FailureDetector/utils/toggle_suspicion.py"
 }
 
 toggle_print_sus() {
-  python "src/mp2/utils/toggle_print_suspicion.py"
+  python "src/FailureDetector/utils/toggle_print_suspicion.py"
 }
 
 sus_status() {
-  python "src/mp2/utils/suspicion_status.py"
+  python "src/FailureDetector/utils/suspicion_status.py"
 }
 
 leave() {
-  python "src/mp2/utils/leave.py"
+  python "src/FailureDetector/utils/leave.py"
 }
 
 merge() {
-   python "src/mp3/bin/merge.py"
+   python "src/FileSystem/bin/merge.py"
 }
 
 build() {
@@ -84,10 +84,10 @@ elif [ "$1" == "build" ]; then
   build
 elif [ "$1" == "start" ]; then
   shift
-  rm -r src/mp3/fs
-  mkdir -p src/mp3/fs/metadata
-  rm -r src/mp3/local_cache
-  mkdir -p src/mp3/local_cache/metadata
+  rm -r src/FileSystem/fs
+  mkdir -p src/FileSystem/fs/metadata
+  rm -r src/FileSystem/local_cache
+  mkdir -p src/FileSystem/local_cache/metadata
   killall "python"
   start "$@"
 elif [ "$1" == "list_mem" ]; then
@@ -104,17 +104,17 @@ elif [ "$1" == "leave" ]; then
   leave "$@"
 elif [ "$1" == "get" ]; then
   shift 
-  python src/mp3/bin/get_file.py "$@"
+  python src/FileSystem/bin/get_file.py "$@"
 elif [ "$1" == "create" ]; then
   shift 
   echo "hello"
-  python src/mp3/bin/create_file.py "$@"
+  python src/FileSystem/bin/create_file.py "$@"
 elif [ "$1" == "append" ]; then
   shift 
-  python src/mp3/bin/append.py "$@"
+  python src/FileSystem/bin/append.py "$@"
 elif [ "$1" == "merge" ]; then
   shift 
-  python src/mp3/bin/merge.py "$@"
+  python src/FileSystem/bin/merge.py "$@"
 elif [ "$1" == "ls" ]; then
   shift
   ls "$@"
@@ -123,21 +123,21 @@ elif [ "$1" == "store" ]; then
   store "$@"
 elif [ "$1" == "getfromreplica" ]; then
   shift
-  python src/mp3/bin/get_from_replica.py "$@"
+  python src/FileSystem/bin/get_from_replica.py "$@"
 elif [ "$1" == "list_mem_ids" ]; then
   members "$@"
 elif [ "$1" == "multiappend" ]; then
   shift
-  python src/mp3/bin/multiappend.py "$@"
+  python src/FileSystem/bin/multiappend.py "$@"
 
 elif [ "$1" == "reset_fs" ]; then
   shift
-  rm -r src/mp3/fs
-  mkdir -p src/mp3/fs/metadata
+  rm -r src/FileSystem/fs
+  mkdir -p src/FileSystem/fs/metadata
 
 elif [ "$1" == "Rainstorm" ]; then
   shift
-  python src/mp4/Rainstorm.py "$@"
+  python src/Streaming/Rainstorm.py "$@"
 else
   echo "$1"
   echo "Command not found"

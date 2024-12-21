@@ -7,12 +7,12 @@ import numpy as np
 # create files
 NUM_FILES = 1000
 
-# random.seed(42)
-# for i in range(2 * NUM_FILES):
-#     file_id = random.randint(1, NUM_FILES)
-#     os.system(f"./run.sh get {file_id}.txt {file_id}.txt")
-#     current_time = time.time()
-#     os.utime(f"src/mp3/local_cache/{file_id}.txt", (current_time, current_time))
+random.seed(42)
+for i in range(2 * NUM_FILES):
+    file_id = random.randint(1, NUM_FILES)
+    os.system(f"./run.sh get {file_id}.txt {file_id}.txt")
+    current_time = time.time()
+    os.utime(f"src/FileSystem/local_cache/{file_id}.txt", (current_time, current_time))
 
 NUM_READS = int(2.5 * NUM_FILES)
 

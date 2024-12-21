@@ -6,7 +6,7 @@ To use the system we have to run
 ./run.sh start <VM_ID>
 ```
 
-This starts both the distributed file system and the underlying failure detection system. The latter is from mp2 (check mp2 README.md for reference) and helps us distribute files to the appropriate node when failure occurs. 
+This starts both the distributed file system and the underlying failure detection system. The latter is from Failure Detector (check Failure Detector README.md for reference) and helps us distribute files to the appropriate node when failure occurs. 
 
 To create a file we run the command
 
@@ -64,4 +64,6 @@ To output the files stored at your vm we run the command
 ```bash
 ./run.sh store
 ```
+
+
 

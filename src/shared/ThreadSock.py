@@ -12,9 +12,11 @@ class ThreadSock():
 
     def sendall(self, data: str):
         with self.send_lock:
+            if (self.socket == None): return b""
             self.socket.sendall(data)
     def recv(self, num_bytes):
         with self.recv_lock:
+            if self.socket == None: return b""
             data = b""
             while len(data) < num_bytes:
                 packet = self.socket.recv(num_bytes - len(data))
@@ -27,6 +29,7 @@ class ThreadSock():
     def replace(self, new_sock):
         with self.send_lock:
             with self.recv_lock:
+                if (self.socket is None): return
                 self.socket.close()
                 self.socket = new_sock
     

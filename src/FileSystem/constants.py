@@ -1,0 +1,17 @@
+NUM_MEMBERS = 10
+
+REPLICATION_FACTOR = 3
+
+INIT_FILE_METADATA = {"version": 0}
+
+CACHE_PATH = "src/FileSystem/local_cache"
+
+MAX_CACHE_FILES = 500
+
+GET = "G"
+MERGE = "M"
+APPEND = "A"
+CREATE = "C"
+START_MERGE = "P"
+JOIN = "J"
+MULTIAPPEND_REQUEST = "Q"
